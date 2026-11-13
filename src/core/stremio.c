@@ -264,14 +264,26 @@ int sb_anime_defs(CatalogDef *out, int max) {
   }
   return n;
 }
-/* Discover: Cinemeta's trending and top rated, its genres (the ones its manifest offers), then the installed catalogs
-   Home has no room for */
+/* Discover (Stremio Claude): Cinemeta's popular and top rated, this year's and last year's releases, then films and series by
+   genre (the genres Cinemeta's manifest offers), then the installed catalogs Home has no room for. Every row is Cinemeta's own
+   "top" / "imdbRating" / "year" catalog, asked with its genre or year: the same answers the official app gets */
+static const char *const DISC_MGEN[] = { "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
+  "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western" };
+static const char *const DISC_SGEN[] = { "Action", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "Mystery", "Reality-TV", "Sci-Fi",
+  "Thriller" };
 int sb_disc_defs(CatalogDef *out, int max) {
-  const char *defs[3][4] = { { "Trending · Movies", "movie", CINEMETA "/catalog/movie/top", "d_m_top" }, { "Trending · Series", "series", CINEMETA "/catalog/series/top", "d_s_top" }, { "Top Rated · Movies", "movie", CINEMETA "/catalog/movie/imdbRating", "d_m_ir" } };
-  const char *genres[5] = { "Action", "Comedy", "Sci-Fi", "Drama", "Horror" };
+  const char *defs[4][4] = { { "Trending · Movies", "movie", CINEMETA "/catalog/movie/top", "d_m_top" }, { "Trending · Series", "series", CINEMETA "/catalog/series/top", "d_s_top" },
+    { "Top Rated · Movies", "movie", CINEMETA "/catalog/movie/imdbRating", "d_m_ir" }, { "Top Rated · Series", "series", CINEMETA "/catalog/series/imdbRating", "d_s_ir" } };
   int n = 0;
-  for (int i = 0; i < 3 && n < max; i++) def_set(&out[n++], defs[i][0], defs[i][1], defs[i][2], NULL, 1, defs[i][3]);
-  for (int i = 0; i < 5 && n < max; i++) { char ex[64] = "", key[16]; addon_extra_add(ex, sizeof ex, "genre", genres[i]); snprintf(key, sizeof key, "d_g_%d", i); def_set(&out[n++], genres[i], "movie", CINEMETA "/catalog/movie/top", ex, 1, key); }
+  for (int i = 0; i < 4 && n < max; i++) def_set(&out[n++], defs[i][0], defs[i][1], defs[i][2], NULL, 1, defs[i][3]);
+  { time_t now = time(NULL); struct tm tmv; localtime_r(&now, &tmv); int year = tmv.tm_year + 1900;   /* this year's and last year's: Cinemeta's "year" catalog */
+    const char *yt[2][2] = { { "New this year · Movies", "New this year · Series" }, { "Last year · Movies", "Last year · Series" } };
+    for (int k = 0; k < 2; k++) for (int t = 0; t < 2 && n < max; t++) { char ex[64] = "", y[8], key[16]; snprintf(y, sizeof y, "%d", year - k); addon_extra_add(ex, sizeof ex, "genre", y);
+      snprintf(key, sizeof key, "d_%c_y%d", t ? 's' : 'm', k); def_set(&out[n++], yt[k][t], t ? "series" : "movie", t ? CINEMETA "/catalog/series/year" : CINEMETA "/catalog/movie/year", ex, 1, key); } }
+  for (int i = 0; i < (int)(sizeof DISC_MGEN / sizeof *DISC_MGEN) && n < max; i++) { char ex[64] = "", key[16], title[96]; addon_extra_add(ex, sizeof ex, "genre", DISC_MGEN[i]);
+    snprintf(key, sizeof key, "d_gm_%d", i); snprintf(title, sizeof title, "%s · Movies", DISC_MGEN[i]); def_set(&out[n++], title, "movie", CINEMETA "/catalog/movie/top", ex, 1, key); }
+  for (int i = 0; i < (int)(sizeof DISC_SGEN / sizeof *DISC_SGEN) && n < max; i++) { char ex[64] = "", key[16], title[96]; addon_extra_add(ex, sizeof ex, "genre", DISC_SGEN[i]);
+    snprintf(key, sizeof key, "d_gs_%d", i); snprintf(title, sizeof title, "%s · Series", DISC_SGEN[i]); def_set(&out[n++], title, "series", CINEMETA "/catalog/series/top", ex, 1, key); }
   if (n < max) n += board_defs(out + n, max - n, HOME_ROWS);
   return n;
 }
