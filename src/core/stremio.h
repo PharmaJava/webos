@@ -18,7 +18,7 @@ typedef struct { Item *items; int n; int total; /* total: the metas in the answe
 
 /* url: the first page as asked (also the cache's name); path: the address before the extra part, extra: what the
    first page is asked with (a required property's first option, or none), skip: the catalog takes "skip" (pages) */
-typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip; } CatalogDef;
+typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip, top10; } CatalogDef;   /* top10: the first ten, with their ranks */
 
 int  sb_init(void);
 /* ---- account ---- */
@@ -42,6 +42,7 @@ void sb_addon_key(const cJSON *addon, char *out, size_t cap);  /* its manifest i
 /* ---- catalogs ---- */
 int  sb_home_defs(CatalogDef *out, int max);
 int  sb_disc_defs(CatalogDef *out, int max);
+int  sb_type_defs(const char *type, CatalogDef *out, int max);   /* the Films / Series tabs: one type, by category */
 int  sb_anime_defs(CatalogDef *out, int max);   /* the anime tab: only anime catalogs */
 /* cached copy first (cb with cached=1), then the fresh one if it differs; the list is malloc'd for the callback owner */
 void sb_catalog(const CatalogDef *def, void (*cb)(ItemList *list, int cached, void *ud), void *ud);

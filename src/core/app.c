@@ -78,7 +78,7 @@ static int rtlHeld; /* a picture drawn left to right and mirrored as a whole (th
 int app_rtl(void) { return rtlHeld ? 0 : i18n_rtl(); }
 void app_rtl_hold(int on) { rtlHeld = on; }
 int app_mirror_key(int k) { if (!i18n_rtl()) return k; return k == K_LEFT ? K_RIGHT : k == K_RIGHT ? K_LEFT : k; }
-int app_is_board(Scr s) { return s == SCR_HOME || s == SCR_DISC || s == SCR_LIB || s == SCR_ANIME; }
+int app_is_board(Scr s) { return s == SCR_HOME || s == SCR_DISC || s == SCR_LIB || s == SCR_ANIME || s == SCR_MOVIES || s == SCR_SERIES; }
 static int xinLib; /* the Library's entrance runs 0.42 s on the page's main curve; the others 0.3 s ease-out */
 float app_screen_alpha(void) { return xin.on ? ease_apply(EASE_CSS_EASEOUT, timer_x(&xin)) : 1; } /* an even ease-out: the front-loaded curves read as a pop */
 static int scr_origin(float *x, float *y) { if (screens[SCR] && screens[SCR]->origin && screens[SCR]->origin(x, y)) return 1; *x = SB_W / 2; *y = SB_H / 2; return 0; }
@@ -317,15 +317,15 @@ static void clock_draw(void) { float W = text_width("00:00", 38, 600, -0.6f); cl
 TopNav topNav = { .idx = NAV_HOME };
 static Scr lastTab = SCR_HOME; /* the board/tab from which Detail or Similar was opened */
 static Scr curTabScr(void) { return (SCR == SCR_DETAIL || SCR == SCR_SIM) ? lastTab : SCR; }
-static const char *chipLabel(int i) { return i == NAV_DISC ? T("Discover") : i == NAV_HOME ? T("Home") : i == NAV_ANIME ? T("Anime") : T("Library"); }
+static const char *chipLabel(int i) { return i == NAV_DISC ? T("Discover") : i == NAV_HOME ? T("Home") : i == NAV_ANIME ? T("Anime") : i == NAV_MOV ? T("Movies") : i == NAV_SER ? T("Series") : T("Library"); }
 static int chipCur(int i) {
-  Scr t = i == NAV_SEARCH ? SCR_SEARCH : i == NAV_SET ? SCR_SET : i == NAV_DISC ? SCR_DISC : i == NAV_HOME ? SCR_HOME : i == NAV_ANIME ? SCR_ANIME : SCR_LIB;
+  Scr t = i == NAV_SEARCH ? SCR_SEARCH : i == NAV_SET ? SCR_SET : i == NAV_DISC ? SCR_DISC : i == NAV_HOME ? SCR_HOME : i == NAV_ANIME ? SCR_ANIME : i == NAV_MOV ? SCR_MOVIES : i == NAV_SER ? SCR_SERIES : SCR_LIB;
   return t == curTabScr();
 }
 static int chipFocused(int i) { return topNav.active && topNav.idx == i && !update_pill_focused(); } /* the update notice holds the highlight */
 static void topnav_layout(void) {
   /* four chips: Discover, Home, Library, Anime */
-  static const int order[NAV_TABS] = { NAV_DISC, NAV_HOME, NAV_LIB, NAV_ANIME };
+  static const int order[NAV_TABS] = { NAV_DISC, NAV_HOME, NAV_MOV, NAV_SER, NAV_LIB, NAV_ANIME };
   float w[NAV_TABS], tot = 0;
   for (int i = 0; i < NAV_TABS; i++) { int c = order[i]; int f = chipFocused(c) || chipCur(c); w[i] = text_width(chipLabel(c), 32, f ? 700 : 400, 0) + 80; tot += w[i] + 18; }
   float x = SB_W / 2 - (tot - 18) / 2;
@@ -349,7 +349,7 @@ static void topnav_paint(void) {
     tween_to(&topNav.cornerF[i], f, 0.2f, EASE_CSS_EASE); tween_to(&topNav.cornerS[i], f, 0.3f, EASE_OUT); tween_to(&topNav.dotK[i], f, 0.24f, EASE_STD); }
   tween_to(&topNav.setRot, chipFocused(NAV_SET) ? 90 : 0, 0.5f, EASE_OUT);
 }
-static Scr chipScr(int i) { return i == NAV_SEARCH ? SCR_SEARCH : i == NAV_SET ? SCR_SET : i == NAV_DISC ? SCR_DISC : i == NAV_HOME ? SCR_HOME : i == NAV_ANIME ? SCR_ANIME : SCR_LIB; }
+static Scr chipScr(int i) { return i == NAV_SEARCH ? SCR_SEARCH : i == NAV_SET ? SCR_SET : i == NAV_DISC ? SCR_DISC : i == NAV_HOME ? SCR_HOME : i == NAV_ANIME ? SCR_ANIME : i == NAV_MOV ? SCR_MOVIES : i == NAV_SER ? SCR_SERIES : SCR_LIB; }
 void topnav_focus(void) { topNav.active = 1; topnav_paint(); }
 void topnav_switch(int i) {
   i = i < 0 ? 0 : i > NAV_ANIME ? NAV_ANIME : i;
@@ -363,7 +363,7 @@ static void topnav_flush(int drop) { if (topNav.want < 0) return; int w = topNav
 static void topnav_enter_content(void) {
   topNav.active = 0; Scr t = chipScr(topNav.idx);
   extern int board_from_bar(void); extern void lib_from_bar(void);
-  if (SCR == SCR_HOME || SCR == SCR_DISC || SCR == SCR_ANIME) {
+  if (SCR == SCR_HOME || SCR == SCR_DISC || SCR == SCR_ANIME || SCR == SCR_MOVIES || SCR == SCR_SERIES) {
     if (!board_from_bar()) { topNav.active = 1; nudge_start(&topNav.nudge, K_DOWN); topnav_paint(); return; }
   } else if (SCR == SCR_LIB) lib_from_bar();                  /* the Library: its categories */
   else if (t != SCR_SEARCH && t != SCR_SET && screens[SCR] && screens[SCR]->key) screens[SCR]->key(K_DOWN); /* Search and Settings keep their own top highlight */
@@ -749,11 +749,11 @@ void app_go(Scr s, const void *params, int noStack) {
   Scr old = SCR;
   if ((s == SCR_SET || s == SCR_SEARCH) && old != SCR_SET && old != SCR_SEARCH && old != SCR_LOGIN) { colorFrom = old; colorFromSet = 1; } /* where Settings / Search were opened from */
   xoutT.on = 0; if (old != s && app_splash_done && navf.kind == NAV_BACKZ && screens[old] && screens[old]->out) { xoutScr = old; timer_start(&xoutT, XOUT_DUR); }
-  int shared = (old == SCR_HOME || old == SCR_DISC || old == SCR_ANIME) && (s == SCR_HOME || s == SCR_DISC || s == SCR_ANIME);
+  int shared = (old == SCR_HOME || old == SCR_DISC || old == SCR_ANIME || old == SCR_MOVIES || old == SCR_SERIES) && (s == SCR_HOME || s == SCR_DISC || s == SCR_ANIME || s == SCR_MOVIES || s == SCR_SERIES);
   /* every switch is a hand-over (no screen pops in), signing out to the sign-in page too; Home, Discover and Anime share one
      layer and hand over on their own; signing in restarts behind the start screen */
   int xf = app_splash_done && old != s && old != SCR_LOGIN && !shared;
-  { int tab = (old == SCR_HOME || old == SCR_DISC || old == SCR_LIB || old == SCR_ANIME) && (s == SCR_HOME || s == SCR_DISC || s == SCR_LIB || s == SCR_ANIME);
+  { int tab = app_is_board(old) && app_is_board(s);
     if (old != s && app_splash_done && !tab) sx_begin(0); } /* page to page, the same logo, poster or words move across (never between the tabs) */
   if (screens[old] && screens[old]->leave && old != s) screens[old]->leave();
   SCR = s;

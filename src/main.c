@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
   if (!text_init(plat_asset_dir(), gfx_scale())) return 1;
   text_set_rtl(i18n_rtl()); icon_init(plat_asset_dir()); sb_init();
   app_init(dw, dh); player_init();
-  app_register(SCR_LOGIN, &loginScreen); app_register(SCR_HOME, &homeScreen); app_register(SCR_DISC, &discScreen); app_register(SCR_LIB, &libScreen); app_register(SCR_ANIME, &animeScreen);
+  app_register(SCR_LOGIN, &loginScreen); app_register(SCR_HOME, &homeScreen); app_register(SCR_DISC, &discScreen); app_register(SCR_LIB, &libScreen); app_register(SCR_ANIME, &animeScreen); app_register(SCR_MOVIES, &moviesScreen); app_register(SCR_SERIES, &seriesScreen);
   app_register(SCR_DETAIL, &detailScreen); app_register(SCR_SIM, &simScreen); app_register(SCR_SEARCH, &searchScreen); app_register(SCR_SET, &setScreen); app_card_menu_hook = cwmenu_show;
   if (sb_signed_in() || getenv("SB_SKIP_LOGIN")) { app_go(SCR_HOME, NULL, 1); splash_start(1, 0); } /* SB_SKIP_LOGIN: the default rows without an account (development) */
   else { app_splash_done = 1; app_go(SCR_LOGIN, NULL, 1); }
@@ -370,7 +370,7 @@ int main(int argc, char **argv) {
         if (lvl != gLvl) { fprintf(stderr, "[mem] guard %d -> %d: app %d MB, TV free %d MB of %d%s\n", gLvl, lvl, rss, fr, tot, film ? " (a film plays)" : ""); gLvl = lvl; } } }
     { /* every 30 s a line of where the memory is (the TV ends an app that takes too much: the shared log then says what grew) */
       static Uint32 memAt; if (SDL_GetTicks() - memAt >= 30000 || !memAt) { memAt = SDL_GetTicks(); int rss, swp; plat_mem_self(&rss, &swp); long tb, pb; int tn; gfx_mem(&tb, &tn, &pb);
-        static const char *SN[] = { "sign-in", "home", "discover", "library", "anime", "title", "similar", "search", "settings" };
+        static const char *SN[] = { "sign-in", "home", "discover", "library", "anime", "movies", "series", "title", "similar", "search", "settings" };
         fprintf(stderr, "[mem] app %d MB (swap %d) · TV free %d MB · pictures %d of %d MB · textures %ld MB in %d (kept for reuse %ld MB) · %s%s%s\n", rss, swp, plat_mem_free_mb(), img_used_mb(), img_budget_mb(),
           tb >> 20, tn, pb >> 20, (unsigned)SCR < SCR_N ? SN[SCR] : "?", player_open() ? " · player" : "", asssubs_on() ? " · styled subtitles" : ""); } }
     if (shot && frame == shotAt) { screenshot(shot, dw, dh); if (getenv("SB_SHOT_EXIT")) app_quit(); }

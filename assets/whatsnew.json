@@ -1,10 +1,10 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "items": [
     {
       "icon": "wn_best",
-      "title": "Much more to discover",
-      "text": "Popular and top rated films and series, this year's and last year's releases, and every genre for both."
+      "title": "Films and Series tabs, and a Top 10",
+      "text": "Each with its categories: today's Top 10, popular, top rated, this year's, last year's and every genre."
     },
     {
       "icon": "wn_new",

@@ -1,6 +1,6 @@
 {
   "id": "tv.stremioorigin.app",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "vendor": "Stremio Claude",
   "type": "native",
   "main": "stremioorigin",
