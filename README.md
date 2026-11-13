@@ -4,6 +4,23 @@
   <img src="docs/logo-pill.png" width="200" alt="Stremio Origin">
 </p>
 
+<h1 align="center">Stremio Claude</h1>
+
+<p align="center"><strong>A fork of <a href="https://github.com/stremio-origin/webos">Stremio Origin</a> (same app id, installs over it and keeps its data), with fixes found on a real LG OLED (webOS 6.5):</strong></p>
+
+- **No more closing mid-film.** libtorrent's `peer_connection::reject_piece` kept a stale end while erasing (`tools/engine/libtorrent.patch`); the engine's
+  streaming window calls it whenever it frees far pieces, so the app crashed every few minutes (SIGSEGV in `memmove`, always the same address).
+- **Subtitles that stay in time.** Two "unsure" references from one release (the same timing in two languages) no longer count as two opinions in the
+  automatic sync (it had moved a film's subtitles by +45 s).
+- **No TV screensaver over a film** (upstream PR #15) and **a pointer that really hides** on the arrows, on Back and when the hand is still (upstream PR #14,
+  plus Back).
+- **Back leaves the video at once**, with the controls up too.
+- Updates come from this repository's releases. Offered in [FreeTV](https://github.com/PharmaJava/FreeTV)'s store.
+
+<p align="center"><em>Unofficial and independent: not affiliated with, endorsed by or sponsored by Stremio or Anthropic. The names only describe compatibility and how it was made.</em></p>
+
+---
+
 <h1 align="center">Stremio Origin</h1>
 
 <p align="center">A native TV app for Stremio addons, written in C.</p>

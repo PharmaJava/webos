@@ -14,5 +14,13 @@
 "Subtitles that just fit": "Subtítulos que encajan",
 "One-press sync, styled as the film made them.": "Sincronización con una tecla, con el estilo de la película.",
 "Picture and sound": "Imagen y sonido",
-"Dolby Vision, DTS converted on the TV, USB for torrents.": "Dolby Vision, DTS convertido en la TV, USB para torrents."
+"Dolby Vision, DTS converted on the TV, USB for torrents.": "Dolby Vision, DTS convertido en la TV, USB para torrents.",
+"No more closing mid-film": "Ya no se cierra en mitad de la película",
+"A fault in the torrent engine closed the app every few minutes while a film played. Fixed.": "Un fallo del motor de torrents cerraba la app cada pocos minutos durante una película. Arreglado.",
+"Subtitles that stay in time": "Subtítulos que no se desfasan",
+"Two translations of one release no longer count as two opinions when lining subtitles up.": "Dos traducciones de una misma versión ya no cuentan como dos opiniones al sincronizar los subtítulos.",
+"Back goes back": "Atrás va atrás",
+"Back leaves the video straight away. The pointer hides on the arrows, on Back and when the hand stays still.": "Atrás sale del vídeo a la primera. El puntero se esconde con las flechas, con Atrás y cuando el mando se queda quieto.",
+"No TV screensaver over a film": "Sin salvapantallas de la tele encima de la película",
+"The app now answers the TV, so its screensaver no longer covers what you watch.": "La app ahora responde a la tele, así que su salvapantallas ya no tapa lo que ves."
 }

@@ -1,6 +1,26 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "items": [
+    {
+      "icon": "wn_new",
+      "title": "No more closing mid-film",
+      "text": "A fault in the torrent engine closed the app every few minutes while a film played. Fixed."
+    },
+    {
+      "icon": "wn_new",
+      "title": "No TV screensaver over a film",
+      "text": "The app now answers the TV, so its screensaver no longer covers what you watch."
+    },
+    {
+      "icon": "wn_subs",
+      "title": "Subtitles that stay in time",
+      "text": "Two translations of one release no longer count as two opinions when lining subtitles up."
+    },
+    {
+      "icon": "wn_new",
+      "title": "Back goes back",
+      "text": "Back leaves the video straight away. The pointer hides on the arrows, on Back and when the hand stays still."
+    },
     {
       "icon": "wn_new",
       "title": "Completely renovated",

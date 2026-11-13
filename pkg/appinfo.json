@@ -1,10 +1,10 @@
 {
   "id": "tv.stremioorigin.app",
-  "version": "1.0.0",
-  "vendor": "Stremio Origin",
+  "version": "1.0.1",
+  "vendor": "Stremio Claude",
   "type": "native",
   "main": "stremioorigin",
-  "title": "Stremio Origin",
+  "title": "Stremio Claude",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
   "bgColor": "#0c0b11",
