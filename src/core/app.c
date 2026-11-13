@@ -809,17 +809,16 @@ static void key_core(int k, int down, int repeat);
    the thing under the pointer is still moving the pointer must stand still 150 ms first. A click is OK pressed
    and released (held on a card: its menu); a few targets act on release (a tab, a chip, the seek bar, beside a
    sheet = close it); a sheet's body absorbs a click. A click and an OK key within 150 ms are one press. The
-   wheel is Up/Down, one step per notch (70 ms apart at most). An arrow key puts the pointer away; it comes
-   back only with a real movement: nothing in the first 350 ms, then 32 px from where the hand started again.
-   The TV itself hides the pointer after 5 s without movement (webOS: SDL_HINT_WEBOS_CURSOR_SLEEP_TIME in
-   plat_webos.c) and says so with K_CURSOR_HIDE, like any other hide. */
+   wheel is Up/Down, one step per notch (70 ms apart at most). Stremio Claude: only Back puts the pointer away
+   (not the arrows, a still hand or the TV's own notice); it comes back when the remote moves (after Back: a real
+   movement, nothing in the first 350 ms, then 32 px from where the hand started again), the wheel turns or is
+   pressed. The TV's own cursor sleep is a day (SDL_HINT_WEBOS_CURSOR_SLEEP_TIME in plat_webos.c). */
 #define PTR_SETTLE 0.15
 #define PTR_DEDUPE 0.15
 #define PTR_WHEEL 0.07
 #define PTR_ARROW_WIN 0.35
 #define PTR_ARROW_DIST 32
 #define PTR_ARROW_PAUSE 0.3
-#define PTR_IDLE_HIDE 5.0 /* a hand held still: the pointer goes away, as it does on the TV's own screens */
 static struct { int on; float x, y; Hit hv; int hasHv; float hx, hy; double movedAt, shownAt; int down, downAct; Hit act; double okKeyAt, clickAt, wheelAt; int eatUp, eatOk, arrowHid; double arrowAt; int anchor; float ax, ay; double tremAt; int dirty; } PTR;
 /* the visible pointer is the TV's own cursor: SDL shows and hides it for the app's window. Nothing else does
    (webOS keeps the cursor drawn for a native client that never hides it, and its cursor messages only tell
@@ -863,14 +862,14 @@ void app_pointer_button(int down, float x, float y) {
 }
 /* the wheel = the Up/Down arrows (Left/Right for a sideways wheel), one per notch; it leaves the pointer out */
 void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; ptr_show(); if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(k, 1, 0); key_core(k, 0, 0); }
-void app_pointer_system(int show) { if (!show) { ptr_hide(); return; } ptr_show(); } /* the TV says the remote moved: it comes back, after an arrow or Back too */
+void app_pointer_system(int show) { if (!show) return; ptr_show(); } /* the TV says the remote moved: it comes back, after Back too; the TV's "hidden" is not followed: only Back hides it */
 void app_key(int k, int down, int repeat) {
   if (k == K_CURSOR_SHOW || k == K_CURSOR_HIDE) { if (down) app_pointer_system(k == K_CURSOR_SHOW); return; } /* a notice from the TV, not a key */
   if (down && k == K_OK && !repeat) { if (PTR.eatOk || PTR.down || (PTR.clickAt && NOW - PTR.clickAt < PTR_DEDUPE)) { PTR.eatOk = 1; return; } PTR.okKeyAt = NOW; } /* the click of this same press came first */
   if (!down && k == K_OK && PTR.eatOk) { PTR.eatOk = 0; return; }
   if (down && saver_on() && k != K_CURSOR_SHOW && k != K_CURSOR_HIDE) { saver_stop(); idle_touch(); if (k == K_OK) PTR.eatOk = 1; return; } /* the key that wakes the screensaver does nothing else */
-  if (down && k == K_OK && !repeat && !PTR.on) ptr_show(); /* the wheel pressed: the pointer comes out (OK still does its job) */
-  if (down && ((k >= K_LEFT && k <= K_DOWN) || k == K_BACK)) { ptr_hide(); PTR.arrowHid = 1; PTR.arrowAt = NOW; PTR.anchor = 0; } /* every arrow re-arms it, hidden or not; Back too (it stayed on the menu after leaving with Back) */
+  if (down && k == K_OK && !repeat) ptr_show(); /* the wheel pressed: the pointer comes out (OK still does its job) */
+  if (down && k == K_BACK) { ptr_hide(); PTR.arrowHid = 1; PTR.arrowAt = NOW; PTR.anchor = 0; } /* only Back puts the pointer away */
   key_core(k, down, repeat);
 }
 /* where the focus is, as far as can be told from outside: the screen, the open sheet, the top bar, the centre of
@@ -940,7 +939,6 @@ void app_init(int drawableW, int drawableH) {
 static void amb_bake(void);
 void app_tick(float dt) {
   DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++;
-  if (PTR.on && NOW - PTR.shownAt > PTR_IDLE_HIDE) ptr_hide(); /* a hand that stopped: the pointer goes away by itself */
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */
   if (okHold.down && !okHold.menu && (NOW - okHold.at) * 1000 >= HOLD_MS) { okHold.menu = 1; menuGuard = 1; orbs_pulse(ORB_HOLD, 1); if (app_card_menu_hook) app_card_menu_hook(&okHold.item); }

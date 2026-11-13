@@ -1,10 +1,10 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "items": [
     {
       "icon": "wn_new",
       "title": "The pointer when you want it",
-      "text": "Move the remote, turn or press the wheel and it comes out; Back and the arrows put it away."
+      "text": "Move the remote, turn or press the wheel and it comes out. It stays until you press Back."
     },
     {
       "icon": "wn_best",

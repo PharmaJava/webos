@@ -36,7 +36,7 @@ void plat_pre_init(const char *appId) {
   SDL_SetHint(SDL_HINT_WEBOS_ACCESS_POLICY_KEYS_EXIT, "true");
   /* the TV hides the pointer after this long without movement, as most TV apps do (milliseconds; the TV's SDL takes
      3000-300000 and leaves it at 5 minutes when unset) */
-  SDL_SetHint(SDL_HINT_WEBOS_CURSOR_SLEEP_TIME, "5000");
+  SDL_SetHint(SDL_HINT_WEBOS_CURSOR_SLEEP_TIME, "86400000"); /* a day: the pointer stays until Back puts it away (5 s made it vanish a second after it came out) */
   char *base = SDL_GetBasePath(); /* from /proc/self/exe: inside the jail, the jail's own path to the app */
   snprintf(assetDir, sizeof assetDir, "%sassets", base ? base : "./");
   /* the app's writable folder, kept across updates where the install allows it. The first that takes a file:
