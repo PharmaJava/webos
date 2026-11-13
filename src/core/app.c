@@ -1,4 +1,7 @@
 #include "core/app.h"
+#include "cJSON.h"
+#include <unistd.h>
+#include <time.h>
 #include "core/bgquality.h"
 #include "platform/plat.h"
 #include "platform/mem.h"
@@ -937,8 +940,25 @@ void app_init(int drawableW, int drawableH) {
   accent_apply(); accent_tick(0); sync_init(); btr_init(); castlink_start();
 }
 static void amb_bake(void);
+/* Another app on the TV asks to show one title (FreeTV's picks): it leaves data/open.json, {"type":"movie"|"series","id":"tt…","at":unix seconds},
+   and opens this app. Looked for once a second, so it works whether the app was closed or already open; read once, then deleted. Only an IMDb id
+   and those two types are taken, and only a fresh request (two minutes): an old file is never acted on */
+static void open_request_tick(void) {
+  static double lastLook; if (NOW - lastLook < 1.0) return; lastLook = NOW;
+  char path[1200]; snprintf(path, sizeof path, "%s/open.json", plat_data_dir());
+  FILE *f = fopen(path, "rb"); if (!f) return;
+  char b[512]; size_t n = fread(b, 1, sizeof b - 1, f); b[n] = 0; fclose(f); unlink(path);
+  cJSON *j = cJSON_Parse(b); const cJSON *ty = cJSON_GetObjectItemCaseSensitive(j, "type"), *id = cJSON_GetObjectItemCaseSensitive(j, "id"), *at = cJSON_GetObjectItemCaseSensitive(j, "at");
+  int ok = cJSON_IsString(ty) && cJSON_IsString(id) && cJSON_IsNumber(at) && (!strcmp(ty->valuestring, "movie") || !strcmp(ty->valuestring, "series"));
+  if (ok) { const char *q = id->valuestring; size_t k = strlen(q); ok = k >= 7 && k <= 12 && q[0] == 't' && q[1] == 't'; for (size_t i = 2; ok && i < k; i++) ok = q[i] >= '0' && q[i] <= '9'; }
+  if (ok) { double age = (double)time(NULL) - at->valuedouble; ok = age > -60 && age < 120; }
+  if (ok) { char url[96]; snprintf(url, sizeof url, "stremio:///detail/%s/%s", ty->valuestring, id->valuestring); fprintf(stderr, "[open] asked for %s %s\n", ty->valuestring, id->valuestring); app_open_external(url, NULL); }
+  else fprintf(stderr, "[open] a request that is not valid or not fresh: ignored\n");
+  cJSON_Delete(j);
+}
 void app_tick(float dt) {
   DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++;
+  open_request_tick();
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */
   if (okHold.down && !okHold.menu && (NOW - okHold.at) * 1000 >= HOLD_MS) { okHold.menu = 1; menuGuard = 1; orbs_pulse(ORB_HOLD, 1); if (app_card_menu_hook) app_card_menu_hook(&okHold.item); }

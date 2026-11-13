@@ -1,6 +1,11 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "items": [
+    {
+      "icon": "wn_new",
+      "title": "Opened from FreeTV",
+      "text": "A film or series picked on FreeTV's home opens here, on its own page."
+    },
     {
       "icon": "wn_new",
       "title": "The pointer when you want it",
