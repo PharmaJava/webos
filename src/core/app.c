@@ -862,13 +862,14 @@ void app_pointer_button(int down, float x, float y) {
   const Hit *d = hit_at(x, y); if (d && hit_same(d, &PTR.act)) PTR.act.act(PTR.act.a, PTR.act.b); /* released on it: its own action */
 }
 /* the wheel = the Up/Down arrows (Left/Right for a sideways wheel), one per notch; it leaves the pointer out */
-void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(k, 1, 0); key_core(k, 0, 0); }
-void app_pointer_system(int show) { if (!show) { ptr_hide(); return; } if (PTR.arrowHid) return; ptr_show(); }
+void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; ptr_show(); if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(k, 1, 0); key_core(k, 0, 0); }
+void app_pointer_system(int show) { if (!show) { ptr_hide(); return; } ptr_show(); } /* the TV says the remote moved: it comes back, after an arrow or Back too */
 void app_key(int k, int down, int repeat) {
   if (k == K_CURSOR_SHOW || k == K_CURSOR_HIDE) { if (down) app_pointer_system(k == K_CURSOR_SHOW); return; } /* a notice from the TV, not a key */
   if (down && k == K_OK && !repeat) { if (PTR.eatOk || PTR.down || (PTR.clickAt && NOW - PTR.clickAt < PTR_DEDUPE)) { PTR.eatOk = 1; return; } PTR.okKeyAt = NOW; } /* the click of this same press came first */
   if (!down && k == K_OK && PTR.eatOk) { PTR.eatOk = 0; return; }
   if (down && saver_on() && k != K_CURSOR_SHOW && k != K_CURSOR_HIDE) { saver_stop(); idle_touch(); if (k == K_OK) PTR.eatOk = 1; return; } /* the key that wakes the screensaver does nothing else */
+  if (down && k == K_OK && !repeat && !PTR.on) ptr_show(); /* the wheel pressed: the pointer comes out (OK still does its job) */
   if (down && ((k >= K_LEFT && k <= K_DOWN) || k == K_BACK)) { ptr_hide(); PTR.arrowHid = 1; PTR.arrowAt = NOW; PTR.anchor = 0; } /* every arrow re-arms it, hidden or not; Back too (it stayed on the menu after leaving with Back) */
   key_core(k, down, repeat);
 }

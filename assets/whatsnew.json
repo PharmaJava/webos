@@ -1,6 +1,21 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "items": [
+    {
+      "icon": "wn_new",
+      "title": "The pointer when you want it",
+      "text": "Move the remote, turn or press the wheel and it comes out; Back and the arrows put it away."
+    },
+    {
+      "icon": "wn_best",
+      "title": "The community's improvements",
+      "text": "Sharper pictures and backdrops, an Anime tab, every catalogue row, faster loading, and more."
+    },
+    {
+      "icon": "wn_subs",
+      "title": "More subtitles read right",
+      "text": "Foreign-dialogue-only subtitles, Arabic and Central European files, and Hungarian."
+    },
     {
       "icon": "wn_new",
       "title": "No more closing mid-film",
