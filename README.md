@@ -56,6 +56,8 @@ Install `StremioOrigin-AndroidTV-<version>.apk` from the `android-tv-v*` release
 [FreeTV](https://github.com/PharmaJava/FreeTV) install it; FreeTV's picks open their title in it, as on webOS. On an emulator in CI it starts, reaches
 the network, shows its sign-in screen and loads the torrent engine; video plays through Android's own player (Media3). Not yet on Android: the DTS
 conversion. Not tried on a real TV yet.
+Releases: `.github/workflows/android.yml` publishes `android-tv-v<version>` from `main`, signed with the `ORIGIN_KEYSTORE` /
+`ORIGIN_KEYSTORE_PASSWORD` secrets (without them it builds but publishes nothing: Android updates only an app signed with the same key).
 
 ## Privacy
 - Sign-in goes directly to Stremio. Your account stays on the TV.
