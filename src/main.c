@@ -22,13 +22,36 @@ static volatile int profN; /* the profiler is the TV's */
 /* SB_PROF=1: a sampling profiler (SIGPROF every 2 ms records the program counter; the frame log prints the
    hottest addresses as offsets into the binary, to resolve with `nm -n build/webos/stremioorigin.dbg`) */
 #include <sys/time.h>
+/* the registers a crash report and the profiler read: ARM32 on the TVs (and the Android TV build); other CPUs where
+   the same code is built for an emulator */
+#if defined(__arm__)
+#  define UC_PC(u) ((u)->uc_mcontext.arm_pc)
+#  define UC_LR(u) ((u)->uc_mcontext.arm_lr)
+#  define UC_FP(u) ((u)->uc_mcontext.arm_fp)
+#  define UC_SP(u) ((u)->uc_mcontext.arm_sp)
+#elif defined(__aarch64__)
+#  define UC_PC(u) ((u)->uc_mcontext.pc)
+#  define UC_LR(u) ((u)->uc_mcontext.regs[30])
+#  define UC_FP(u) ((u)->uc_mcontext.regs[29])
+#  define UC_SP(u) ((u)->uc_mcontext.sp)
+#elif defined(__x86_64__)
+#  define UC_PC(u) ((u)->uc_mcontext.gregs[REG_RIP])
+#  define UC_LR(u) (0UL)
+#  define UC_FP(u) ((u)->uc_mcontext.gregs[REG_RBP])
+#  define UC_SP(u) ((u)->uc_mcontext.gregs[REG_RSP])
+#else
+#  define UC_PC(u) (0UL)
+#  define UC_LR(u) (0UL)
+#  define UC_FP(u) (0UL)
+#  define UC_SP(u) (0UL)
+#endif
 #define PROF_N 8192
 static unsigned long profPc[PROF_N], profLr[PROF_N], profUp[PROF_N][3]; static volatile int profN; static unsigned long profBase; static unsigned long stackLo, stackHi;
 #include <sys/syscall.h>
 static long profTid; /* SB_PROF=main: only the drawing thread's samples */
-static void on_prof(int sig, siginfo_t *si, void *uc) { (void)sig; (void)si; if (profTid && syscall(SYS_gettid) != profTid) return; ucontext_t *u = uc; int n = profN; if (n < PROF_N) { profPc[n] = u->uc_mcontext.arm_pc; profLr[n] = u->uc_mcontext.arm_lr;
+static void on_prof(int sig, siginfo_t *si, void *uc) { (void)sig; (void)si; if (profTid && syscall(SYS_gettid) != profTid) return; ucontext_t *u = uc; int n = profN; if (n < PROF_N) { profPc[n] = UC_PC(u); profLr[n] = UC_LR(u);
     /* three callers up the frame-pointer chain (a build with SB_FP=1: [fp] = the caller's fp, [fp + 4] = its return address) */
-    unsigned long fp = u->uc_mcontext.arm_fp; for (int k = 0; k < 3; k++) { if (fp < stackLo || fp + 8 > stackHi || (fp & 3)) { profUp[n][k] = 0; fp = 0; continue; } profUp[n][k] = ((unsigned long *)fp)[1]; fp = ((unsigned long *)fp)[0]; }
+    unsigned long fp = UC_FP(u); for (int k = 0; k < 3; k++) { if (fp < stackLo || fp + 8 > stackHi || (fp & 3)) { profUp[n][k] = 0; fp = 0; continue; } profUp[n][k] = ((unsigned long *)fp)[1]; fp = ((unsigned long *)fp)[0]; }
     profN = n + 1; } }
 static void prof_maps(void) { FILE *m = fopen("/proc/self/maps", "r"); if (!m) return; char l[300]; while (fgets(l, sizeof l, m)) if (strstr(l, "r-xp") && strchr(l, '/')) fprintf(stderr, "[maps] %s", l); fclose(m); }
 /* the hottest 64-byte buckets, and for the hottest one the callers (link register) in our own binary */
@@ -60,7 +83,7 @@ static void prof_start(void) {
   struct itimerval it = { { 0, 2000 }, { 0, 2000 } }; setitimer(ITIMER_PROF, &it, NULL);
 }
 static void on_crash(int sig, siginfo_t *si, void *uc) {
-  ucontext_t *u = uc; char b[512]; int n = snprintf(b, sizeof b, "[crash] signal %d addr %p pc %p lr %p sp %p\n", sig, si ? si->si_addr : NULL, (void *)u->uc_mcontext.arm_pc, (void *)u->uc_mcontext.arm_lr, (void *)u->uc_mcontext.arm_sp);
+  ucontext_t *u = uc; char b[512]; int n = snprintf(b, sizeof b, "[crash] signal %d addr %p pc %p lr %p sp %p\n", sig, si ? si->si_addr : NULL, (void *)UC_PC(u), (void *)UC_LR(u), (void *)UC_SP(u));
   if (write(2, b, n) < 0) {}
   FILE *m = fopen("/proc/self/maps", "r"); if (m) { char l[300]; while (fgets(l, sizeof l, m)) if (strstr(l, "stremioorigin")) fputs(l, stderr); fclose(m); }
   fflush(stderr); _exit(4);
