@@ -41,6 +41,16 @@ public class OriginActivity extends SDLActivity {
     protected void onCreate(Bundle state) {
         current = this;
         try { copyAssets(); } catch (IOException e) { Log.e(TAG, "assets", e); }
+        // where the torrent engine (libsbengine.so) is: src/core/p2p.c reads it on Android
+        try { android.system.Os.setenv("SB_LIBDIR", getApplicationInfo().nativeLibraryDir, true); } catch (Exception e) { Log.e(TAG, "SB_LIBDIR", e); }
+        fromFreeTV(getIntent());
+        // development builds only (the CI's emulator test): SB_P2PTEST, the app's own torrent check (src/main.c), from the intent
+        if (BuildConfig.DEBUG && getIntent() != null) {
+            String t = getIntent().getStringExtra("sb.p2ptest");
+            if (t != null && t.matches("p2p://[0-9a-f]{40}(/\\d{1,4})?")) {
+                try { android.system.Os.setenv("SB_P2PTEST", t, true); } catch (Exception e) { Log.e(TAG, "SB_P2PTEST", e); }
+            }
+        }
         super.onCreate(state);
         if (mBrokenLibraries || mLayout == null) return;
         // The picture: under everything. SDL's surface goes over it (a media overlay) with an alpha channel, so where the
@@ -56,6 +66,36 @@ public class OriginActivity extends SDLActivity {
             mSurface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
         }
         OriginPlayer.attach(this);
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        fromFreeTV(intent);
+    }
+
+    /**
+     * FreeTV on the same TV asks for one title (its picks, Continue watching) and may give its TMDB key, as its store service does on
+     * webOS: the same files in the app's own folder, open.json {"type","id","at"} (src/core/app.c looks for it once a second) and
+     * tmdb.key (only when there is none). Only movie/series and an IMDb id; only a key of plain characters.
+     */
+    private void fromFreeTV(android.content.Intent i) {
+        if (i == null) return;
+        String type = i.getStringExtra("freetv.open.type"), id = i.getStringExtra("freetv.open.id"), key = i.getStringExtra("freetv.tmdb.key");
+        try {
+            if (type != null && id != null && type.matches("movie|series") && id.matches("tt\\d{5,10}")) {
+                String body = "{\"type\":\"" + type + "\",\"id\":\"" + id + "\",\"at\":" + (System.currentTimeMillis() / 1000) + "}";
+                write(new File(getFilesDir(), "open.json"), body);
+            }
+            File kf = new File(getFilesDir(), "tmdb.key");
+            if (key != null && key.matches("[A-Za-z0-9._-]{16,400}") && (!kf.isFile() || kf.length() == 0)) write(kf, key);
+        } catch (IOException e) { Log.e(TAG, "from FreeTV", e); }
+    }
+
+    private static void write(File f, String text) throws IOException {
+        File tmp = new File(f.getPath() + ".tmp");
+        try (OutputStream o = new FileOutputStream(tmp)) { o.write(text.getBytes(StandardCharsets.UTF_8)); }
+        if (!tmp.renameTo(f)) throw new IOException("rename " + f);
     }
 
     @Override

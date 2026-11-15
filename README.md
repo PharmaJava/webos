@@ -51,9 +51,11 @@ For LG TVs running webOS 3 and later (ARM). Tested on webOS 4.4; this fork also 
 - Or download the `.ipk` from Releases and install it on a TV in Developer Mode.
 
 **Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…), experimental:** the same app, built for Android
-(`tools/build-android.sh`, see `androidtv/`). Install `StremioOrigin-AndroidTV-<version>.apk` from the `android-tv-v*` release (with Downloader,
-a USB drive or `adb install`), or let [FreeTV](https://github.com/PharmaJava/FreeTV) install it. On an emulator in CI it starts, reaches the network and shows its sign-in screen;
-video plays through Android's own player (Media3). Not yet on Android: torrents and the DTS conversion. Not tried on a real TV yet.
+(`tools/build-android.sh`, see `androidtv/`), torrents included (the same engine and patches, built with the NDK: `tools/build-engine-android.sh`).
+Install `StremioOrigin-AndroidTV-<version>.apk` from the `android-tv-v*` release (with Downloader, a USB drive or `adb install`), or let
+[FreeTV](https://github.com/PharmaJava/FreeTV) install it; FreeTV's picks open their title in it, as on webOS. On an emulator in CI it starts, reaches
+the network, shows its sign-in screen and loads the torrent engine; video plays through Android's own player (Media3). Not yet on Android: the DTS
+conversion. Not tried on a real TV yet.
 
 ## Privacy
 - Sign-in goes directly to Stremio. Your account stays on the TV.
