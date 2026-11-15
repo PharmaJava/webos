@@ -1,4 +1,4 @@
-# Stremio Origin for Android TV: builds the APK (armeabi-v7a, every Android TV / Google TV) and opens an x86_64 build of the
+# Stremio Claude for Android TV: builds the APK (with the torrent engine) (armeabi-v7a, every Android TV / Google TV) and opens an x86_64 build of the
 # same code on an emulator (tools/android-smoke.sh: it must draw frames, reach the network and not crash).
 # On main, or by hand, the APK goes on the release "android-tv-v<version>" (what FreeTV installs on Android TV), but only when the
 # repository has the ORIGIN_KEYSTORE secret (base64 of a keystore) and ORIGIN_KEYSTORE_PASSWORD: Android only updates an app signed
@@ -56,8 +56,9 @@ jobs:
         with: { gradle-version: '8.14.3' }
       - name: NDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" "cmake;3.22.1" > /dev/null
-      - name: Build for the emulator (x86_64)
+      - name: Build for the emulator (x86_64), with the torrent engine
         run: |
+          tools/build-engine-android.sh x86_64
           tools/android-deps.sh
           (cd androidtv && gradle --no-daemon -q -PoriginAbis=x86_64 :app:assembleDebug)
       - name: Let the emulator use hardware acceleration
@@ -73,7 +74,7 @@ jobs:
           profile: tv_1080p
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: tools/android-smoke.sh androidtv/app/build/outputs/apk/debug/app-debug.apk
+          script: P2P_TEST=p2p://dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c tools/android-smoke.sh androidtv/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: smoke, path: dist/smoke/ }

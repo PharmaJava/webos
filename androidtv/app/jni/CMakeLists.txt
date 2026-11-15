@@ -122,7 +122,7 @@ if(NOT keys_rc EQUAL 0)
 endif()
 
 # ---- the app ---------------------------------------------------------------------------------------
-file(GLOB APP_SRC ${ROOT}/src/core/*.c ${ROOT}/src/ui/*.c ${ROOT}/src/screens/*.c ${ROOT}/src/platform/android/*.c ${ROOT}/src/main.c)
+file(GLOB APP_SRC CONFIGURE_DEPENDS ${ROOT}/src/core/*.c ${ROOT}/src/ui/*.c ${ROOT}/src/screens/*.c ${ROOT}/src/platform/android/*.c ${ROOT}/src/main.c)
 add_library(main SHARED ${APP_SRC})
 target_compile_options(main PRIVATE ${OPT} -std=c11 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 target_compile_definitions(main PRIVATE _GNU_SOURCE SB_ANDROID=1 "SB_APP_ID=\"${APPID}\"" _FILE_OFFSET_BITS=64)
