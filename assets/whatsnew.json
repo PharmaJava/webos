@@ -1,6 +1,11 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "items": [
+    {
+      "icon": "wn_new",
+      "title": "Stremio Claude on Android TV",
+      "text": "The same app on Sony Bravia and every Android TV / Google TV, installed from FreeTV's Store. Code: github.com/PharmaJava/webos"
+    },
     {
       "icon": "wn_best",
       "title": "Films and Series tabs, and a Top 10",
