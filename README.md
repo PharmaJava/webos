@@ -47,7 +47,7 @@ Developed and tested on webOS 4.4, and reported working on webOS 4 to 25. [More]
 
 **Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…), experimental:** the same app, built for Android
 (`tools/build-android.sh`, see `androidtv/`). Install `StremioOrigin-AndroidTV-<version>.apk` from the `android-tv-v*` release (with Downloader,
-a USB drive or `adb install`), or let [FreeTV](https://github.com/PharmaJava/FreeTV) install it. It starts, signs in and browses on an emulator in CI;
+a USB drive or `adb install`), or let [FreeTV](https://github.com/PharmaJava/FreeTV) install it. On an emulator in CI it starts, reaches the network and shows its sign-in screen;
 video plays through Android's own player (Media3). Not yet on Android: torrents and the DTS conversion. Not tried on a real TV yet.
 
 ## Privacy
