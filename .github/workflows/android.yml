@@ -90,6 +90,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { name: apk, path: dist }
       - name: Publish
+        # --latest=false: the webOS release (the .ipk) stays the repository's "latest"; FreeTV's Store and the app's own updater look for it
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -97,5 +98,5 @@ jobs:
           tag="android-tv-v$ver"
           (cd dist && sha256sum *.apk > SHA256SUMS)
           if gh release view "$tag" >/dev/null 2>&1; then gh release upload "$tag" dist/*.apk dist/SHA256SUMS --clobber
-          else gh release create "$tag" dist/*.apk dist/SHA256SUMS --title "Stremio Origin $ver for Android TV" \
+          else gh release create "$tag" dist/*.apk dist/SHA256SUMS --latest=false --title "Stremio Origin $ver for Android TV" \
             --notes "Stremio Origin for Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…). Install the APK on the TV (Downloader, a USB drive or adb install)."; fi
