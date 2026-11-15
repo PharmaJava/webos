@@ -45,6 +45,11 @@ LG TVs on webOS 3 or later (ARM). With the Homebrew Channel, search for Stremio 
 ## Compatibility
 Developed and tested on webOS 4.4, and reported working on webOS 4 to 25. [More](docs/compatibility.md).
 
+**Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…), experimental:** the same app, built for Android
+(`tools/build-android.sh`, see `androidtv/`). Install `StremioOrigin-AndroidTV-<version>.apk` from the `android-tv-v*` release (with Downloader,
+a USB drive or `adb install`), or let [FreeTV](https://github.com/PharmaJava/FreeTV) install it. It starts, signs in and browses on an emulator in CI;
+video plays through Android's own player (Media3). Not yet on Android: torrents and the DTS conversion. Not tried on a real TV yet.
+
 ## Privacy
 - Sign-in goes directly to Stremio. Your account stays on the TV.
 - No analytics. Nothing is sent to the developer.
