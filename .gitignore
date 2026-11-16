@@ -1,0 +1,16 @@
+build/
+dist/
+*.o
+.DS_Store
+
+# the Samsung host's build output and staged files (tools/build-tpk.sh)
+tizentv/bin/
+tizentv/obj/
+tizentv/lib/
+tizentv/res/
+tizentv/shared/
+tizentv/hostbin/
+tizentv/hosts/*/bin/
+tizentv/hosts/*/obj/
+tizentv/tests/bin/
+tizentv/tests/obj/
