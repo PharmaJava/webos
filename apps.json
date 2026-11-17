@@ -1,0 +1,33 @@
+{
+  "paging": {
+    "page": 1,
+    "count": 1,
+    "maxPage": 1,
+    "itemsTotal": 1
+  },
+  "packages": [
+    {
+      "id": "tv.stremioorigin.app",
+      "title": "Stremio Claude",
+      "iconUri": "https://pharmajava.github.io/webos/icon.png",
+      "pool": "main",
+      "manifestUrl": "https://pharmajava.github.io/webos/api/apps/tv.stremioorigin.app/manifest.json",
+      "shortDescription": "A native app for Stremio addons, written in C. Unofficial.",
+      "fullDescriptionUrl": "api/apps/tv.stremioorigin.app/full_description.html",
+      "manifest": {
+        "id": "tv.stremioorigin.app",
+        "version": "1.2.3",
+        "type": "native",
+        "title": "Stremio Claude",
+        "appDescription": "Stremio Origin with Films, Series and Anime tabs and a daily Top 10. You bring the account and addons; it ships empty. Unofficial.",
+        "iconUri": "https://pharmajava.github.io/webos/icon.png",
+        "sourceUrl": "https://github.com/PharmaJava/webos",
+        "rootRequired": false,
+        "ipkUrl": "https://pharmajava.github.io/webos/tv.stremioorigin.app_1.2.3_arm.ipk",
+        "ipkHash": {
+          "sha256": "aa00c7503c62a4bf920c26466a8ba5989e5e7d9243129895099580dc84228b99"
+        }
+      }
+    }
+  ]
+}
