@@ -22,6 +22,8 @@
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
+**Install and update with the Homebrew Channel:** in the Channel, *Settings* → *Repositories*, add `https://pharmajava.github.io/webos/apps.json` and remove Stremio Origin's own (`https://stremio-origin.github.io/webos/apps.json`): both list the same app id, and Stremio Origin's older version cannot install over Stremio Claude. Every release updates this list (the `gh-pages` branch: `apps.json` and the package).
+
 <p align="center"><em>Unofficial and independent: not affiliated with, endorsed by or sponsored by Stremio or Anthropic. The names only describe compatibility and how it was made.</em></p>
 
 ---

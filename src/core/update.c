@@ -28,7 +28,7 @@
 #endif
 
 #define UPD_GH "https://api.github.com/repos/PharmaJava/webos/releases?per_page=8"
-#define UPD_MAN "https://raw.githubusercontent.com/PharmaJava/webos/main/pkg/" SB_APP_ID ".manifest.json"
+#define UPD_MAN "https://pharmajava.github.io/webos/api/apps/" SB_APP_ID "/manifest.json"
 typedef struct { char ver[24], url[512], sha[72]; char notes[5][256]; int nnotes; } Rel;
 static struct {
   char cur[24], appinfo[1200]; int read; Rel avail; int has, state; char msg[240]; unsigned serial;
