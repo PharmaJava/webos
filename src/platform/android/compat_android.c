@@ -11,3 +11,4 @@ void video_set_live(int on) { (void)on; }
 void video_live_rejoin(void) { video_play(); }
 int video_edge_colors(uint32_t *out4) { (void)out4; return 0; }
 VidPlaneCaps video_plane_caps(void) { VidPlaneCaps c = { 0, 0, 0, 1 }; return c; } /* (the SurfaceView moves through the Java side: one move behind a dip to black) */
+int video_mac_real(void) { return 1; } /* (livepeek.c asks it off webOS: Android plays real video) */
