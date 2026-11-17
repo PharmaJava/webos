@@ -6,6 +6,25 @@
   <img src="docs/platform-lg.svg" height="72" alt="LG" align="middle">
 </p>
 
+<h1 align="center">Stremio Claude</h1>
+
+<p align="center"><strong>A fork of <a href="https://github.com/stremio-origin/webos">Stremio Origin</a> that follows it release by release (now 1.1.1, with every improvement of the original app) and adds, on top (same app id: it installs over Stremio Origin and keeps its data):</strong></p>
+
+- **Films and Series tabs**, each with today's **Top 10** (big rank numbers), popular, top rated, this year's, last year's and every genre, from Cinemeta;
+  and an **Anime tab** with the anime catalogs of your addons. Tabs: Discover, Home, Films, Series, Library, Anime.
+- **No more closing mid-film.** libtorrent's `peer_connection::reject_piece` kept a stale end while erasing (`tools/engine/libtorrent.patch`); the engine's
+  streaming window calls it whenever it frees far pieces, so the app crashed every few minutes (SIGSEGV in `memmove`).
+- **Subtitles that stay in time.** Two "unsure" references from one release (the same timing in two languages) no longer count as two opinions in the
+  automatic sync.
+- **The pointer when you want it:** moving the remote, turning or pressing the wheel brings it out, and only Back puts it away.
+- **Back leaves the video at once**, with the controls up too.
+- **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
+- **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
+
+<p align="center"><em>Unofficial and independent: not affiliated with, endorsed by or sponsored by Stremio or Anthropic. The names only describe compatibility and how it was made.</em></p>
+
+---
+
 <h1 align="center">Stremio Origin for LG webOS</h1>
 
 <p align="center">A native app for Stremio addons, written in C.</p>
