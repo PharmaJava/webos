@@ -27,11 +27,6 @@
    "text": "Move the remote, turn or press the wheel and it comes out. It stays until you press Back."
   },
   {
-   "icon": "wn_new",
-   "title": "No more closing mid-film",
-   "text": "A fault in the torrent engine closed the app every few minutes while a film played. Fixed."
-  },
-  {
    "icon": "wn_av",
    "title": "Seek previews",
    "text": "A picture of the film on the seek bar, for debrid and direct links."

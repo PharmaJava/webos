@@ -25,8 +25,7 @@ if [ ! -d "$DEPS/nuvio_libtorrent-src/.git" ]; then
   git -C "$DEPS/nuvio_libtorrent-src" -c advice.detachedHead=false checkout -q 740a0b9aeabe00e762cc0efe4a0f27593db2550b
   git -C "$DEPS/nuvio_libtorrent-src" submodule update -q --init deps/try_signal
 fi
-git -C "$DEPS/nuvio_libtorrent-src" checkout -q -- src/peer_connection.cpp
-git -C "$DEPS/nuvio_libtorrent-src" apply --whitespace=nowarn "$ROOT/tools/engine/libtorrent.patch"
+git -C "$DEPS/nuvio_libtorrent-src" checkout -q -- src/peer_connection.cpp   # (the engine applies its own reject_piece fix, ours before 1.1.1)
 
 B="$W/build-$ABI"
 XFL="-fexperimental-library"   # the NDK's libc++ keeps std::jthread and stop_token (the engine's HTTP server) behind this
