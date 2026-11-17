@@ -971,6 +971,7 @@ void app_tick_behind(float dt) {
 /* Another app on the TV asks to show one title (FreeTV's picks): it leaves data/open.json, {"type":"movie"|"series","id":"tt…","at":unix seconds},
    and opens this app. Looked for once a second, so it works whether the app was closed or already open; read once, then deleted. Only an IMDb id
    and those two types are taken, and only a fresh request (two minutes): an old file is never acted on */
+__attribute__((weak)) void video_ss_tick(void) { } /* (webOS answers the TV's screen saver; elsewhere nothing) */
 static void open_request_tick(void) {
   static double lastLook; if (NOW - lastLook < 1.0) return; lastLook = NOW;
   char path[1200]; snprintf(path, sizeof path, "%s/open.json", plat_data_dir());
@@ -987,6 +988,7 @@ static void open_request_tick(void) {
 void app_tick(float dt) {
   DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++; away_tick();
   open_request_tick();
+  { extern void video_ss_tick(void); video_ss_tick(); } /* (Stremio Claude: the TV's screen saver answered from the start, menus too) */
   ptr_idle();
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */
