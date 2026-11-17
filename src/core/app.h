@@ -6,7 +6,7 @@
 #include "core/anim.h"
 #include "core/stremio.h"
 
-typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_N } Scr;
+typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_MOVIES, SCR_SERIES, SCR_ANIME, SCR_N } Scr; /* (Stremio Claude: the last three, its own tabs) */
 typedef struct {
   void (*enter)(const void *params);
   void (*leave)(void);
@@ -96,8 +96,13 @@ float app_hold_k(double since);        /* 0..1 of a hold begun then, on the same
 #define NAV_SEARCH 1
 #define NAV_DISC 2
 #define NAV_HOME 3
-#define NAV_LIB 4
-typedef struct { int idx, active; int want; double swAt; Nudge nudge; Tween px, pw, pill; float pillShown; Tween cornerF[2], cornerS[2], dotK[2]; Tween setRot; float chipX[5], chipW[5]; int laidOut; } TopNav;
+#define NAV_MOV 4     /* Stremio Claude: films only, by category */
+#define NAV_SER 5     /* Stremio Claude: series only, by category */
+#define NAV_LIB 6
+#define NAV_ANIME 7   /* Stremio Claude: anime catalogs only */
+#define NAV_LAST 7    /* the last tab (the numbers follow the order on screen) */
+#define NAV_TABS 6
+typedef struct { int idx, active; int want; double swAt; Nudge nudge; Tween px, pw, pill; float pillShown; Tween cornerF[2], cornerS[2], dotK[2]; Tween setRot; float chipX[8], chipW[8]; int laidOut; } TopNav;
 extern TopNav topNav;
 void topnav_focus(void);
 void topnav_draw(void);

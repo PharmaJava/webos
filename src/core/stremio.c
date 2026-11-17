@@ -151,6 +151,57 @@ static int board_defs(CatalogDef *out, int max, int from) {
     ai++; }
   return n;
 }
+/* ---- Stremio Claude: the Films, Series and Anime tabs ---- */
+/* rows made from Cinemeta's own catalogs ("top" is what is watched now and changes every day, "imdbRating", "year"),
+   asked with a genre or a year */
+static const char *const TAB_MGEN[] = { "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
+  "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western" };
+static const char *const TAB_SGEN[] = { "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Mystery",
+  "Reality-TV", "Romance", "Sci-Fi", "Thriller", "War" };
+static int this_year(void) { time_t now = time(NULL); struct tm tmv; localtime_r(&now, &tmv); return tmv.tm_year + 1900; }
+static void cin_row(CatalogDef *d, const char *title, const char *type, const char *cat, const char *genre, const char *key, int top10) {
+  char ex[64] = "", path[200]; if (genre) addon_extra_add(ex, sizeof ex, "genre", genre);
+  snprintf(path, sizeof path, CINEMETA "/catalog/%s/%s", type, cat); def_set(d, title, type, path, ex, top10 ? 0 : 1, key); d->top10 = top10;
+}
+/* the Films or the Series tab: today's Top 10, popular, top rated, this year's and last year's, then every genre */
+int sb_type_defs(const char *type, CatalogDef *out, int max) {
+  int mov = !strcmp(type, "movie"), n = 0; const char *T2 = mov ? "Movies" : "Series"; char t[96], y[8], key[24];
+  const char *const *gen = mov ? TAB_MGEN : TAB_SGEN; int ng = mov ? (int)(sizeof TAB_MGEN / sizeof *TAB_MGEN) : (int)(sizeof TAB_SGEN / sizeof *TAB_SGEN);
+  if (n < max) { snprintf(t, sizeof t, "Top 10 · %s today", T2); snprintf(key, sizeof key, "t%c_top10", mov ? 'm' : 's'); cin_row(&out[n++], t, type, "top", NULL, key, 1); }
+  if (n < max) { snprintf(t, sizeof t, "Popular · %s", T2); snprintf(key, sizeof key, "t%c_top", mov ? 'm' : 's'); cin_row(&out[n++], t, type, "top", NULL, key, 0); }
+  if (n < max) { snprintf(t, sizeof t, "Top Rated · %s", T2); snprintf(key, sizeof key, "t%c_ir", mov ? 'm' : 's'); cin_row(&out[n++], t, type, "imdbRating", NULL, key, 0); }
+  for (int k = 0; k < 2 && n < max; k++) { snprintf(y, sizeof y, "%d", this_year() - k); snprintf(t, sizeof t, "%s · %s", k ? "Last year" : "New this year", T2);
+    snprintf(key, sizeof key, "t%c_y%d", mov ? 'm' : 's', k); cin_row(&out[n++], t, type, "year", y, key, 0); }
+  for (int i = 0; i < ng && n < max; i++) { snprintf(t, sizeof t, "%s · %s", gen[i], T2); snprintf(key, sizeof key, "t%c_g%d", mov ? 'm' : 's', i); cin_row(&out[n++], t, type, "top", gen[i], key, 0); }
+  return n;
+}
+static void ascii_low(const char *s, char *out, size_t cap) { copy_str(out, cap, s ? s : ""); for (char *q = out; *q; q++) if (*q >= 'A' && *q <= 'Z') *q += 32; }
+static int has_anime_word(const char *low) { return strstr(low, "anime") || strstr(low, "kitsu") || strstr(low, "myanimelist") || strstr(low, "anisearch") || strstr(low, "anilist"); }
+/* 1: an anime addon or catalog (first on the tab), 2: an anime service's row in a general addon (Crunchyroll), 0: not anime */
+static int anime_cat_rank(const cJSON *ad, const cJSON *cat) {
+  const cJSON *m = js_obj(ad, "manifest"); char mlow[256], clow[320], tlow[64], ilow[128];
+  snprintf(mlow, sizeof mlow, "%s %s", js_str(m, "id", ""), js_str(m, "name", "")); ascii_low(mlow, mlow, sizeof mlow);
+  const char *ctype = js_str(cat, "type", ""), *cid = js_str(cat, "id", ""), *cnm = js_str(cat, "name", "");
+  ascii_low(ctype, tlow, sizeof tlow); ascii_low(cid, ilow, sizeof ilow); snprintf(clow, sizeof clow, "%s %s %s", ctype, cid, cnm); ascii_low(clow, clow, sizeof clow);
+  if (strstr(tlow, "anime") || has_anime_word(mlow) || has_anime_word(clow)) return 1;
+  if (strstr(clow, "crunchyroll") || strstr(clow, "hidive") || strstr(clow, "funimation") || !strcmp(ilow, "cru") || !strcmp(ilow, "streaming.cru")) return 2;
+  return 0;
+}
+int sb_anime_defs(CatalogDef *out, int max) {
+  int n = 0; cJSON *a = sb_addons(); if (!a) return 0;
+  for (int pass = 1; pass <= 2 && n < max; pass++) { int ai = 0; const cJSON *ad;
+    cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) { ai++; continue; } const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat; char base[512]; addon_base(ad, base, sizeof base); int ci = 0;
+      if (cats) cJSON_ArrayForEach(cat, cats) {
+        const char *ctype = js_str(cat, "type", NULL), *cid = js_str(cat, "id", NULL); char ex[200];
+        if (ctype && cid && *ctype && *cid && n < max && anime_cat_rank(ad, cat) == pass && addon_cat_default_extra(cat, ex, sizeof ex) == 0) {
+          CatalogDef *d = &out[n++]; const char *nm = js_str(cat, "name", ""); char title[96], key[48], path[512], te[96], ie[300]; const char *tl = !strcmp(ctype, "anime") ? "" : type_label(ctype);
+          snprintf(title, sizeof title, "%s%s%s", *nm ? nm : cid, *tl ? " · " : "", tl); snprintf(key, sizeof key, "an%d_%d", ai, ci);
+          addon_urlenc(ctype, te, sizeof te); addon_urlenc(cid, ie, sizeof ie); snprintf(path, sizeof path, "%s/catalog/%s/%s", base, te, ie);
+          def_set(d, title, ctype, path, ex, addon_cat_extra(cat, "skip", NULL, NULL, NULL), key); }
+        ci++; }
+      ai++; } }
+  return n;
+}
 /* Home: every installed catalog, in the addons' order (it showed the first 8 and dropped the rest) */
 int sb_home_defs(CatalogDef *out, int max) {
   int n = board_defs(out, max, 0);
