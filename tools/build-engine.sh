@@ -29,6 +29,9 @@ if [ ! -d "$DEPS/nuvio_libtorrent-src/.git" ]; then
   git -C "$DEPS/nuvio_libtorrent-src" checkout -q 740a0b9aeabe00e762cc0efe4a0f27593db2550b
   git -C "$DEPS/nuvio_libtorrent-src" submodule update -q --init deps/try_signal
 fi
+# libtorrent fixes of our own (tools/engine/libtorrent.patch): put back the pinned file, then the patch, every build
+git -C "$DEPS/nuvio_libtorrent-src" checkout -q -- src/peer_connection.cpp
+git -C "$DEPS/nuvio_libtorrent-src" apply --whitespace=nowarn "$ROOT/tools/engine/libtorrent.patch"
 case "$TARGET" in
   webos) ZT="-target arm-linux-gnueabi.${GLIBC:-2.17} -mcpu=cortex_a9-neon -mfloat-abi=softfp"; OUT="$ROOT/build/webos/libsbengine.so"; SYS=Linux; PROC=arm ;;   # soft-float ABI like the app; this compiler drops NEON from the assembler there, so libtorrent takes its portable paths
   mac)   ZT=""; OUT="$ROOT/build/mac/libsbengine.dylib"; SYS=Darwin; PROC=aarch64 ;;
