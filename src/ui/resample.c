@@ -1,3 +1,5 @@
+/* Resampling of a picture's part to an exact size: area-averaged when it shrinks (as before, byte for byte), smooth
+   (bilinear, the alpha premultiplied) on an axis that grows. From PR #62 by valentinBoch */
 #include "ui/resample.h"
 #include <math.h>
 #include <stdint.h>
@@ -50,9 +52,12 @@ unsigned char *sb_resample_rgba(const unsigned char *src, int w, int h,
                                 float cx, float cy, float cw, float ch,
                                 int nw, int nh) {
   if (!src || w <= 0 || h <= 0 || nw <= 0 || nh <= 0 ||
-      !isfinite(cx) || !isfinite(cy) || !isfinite(cw) || !isfinite(ch) ||
-      cx < 0 || cy < 0 || cw <= 0 || ch <= 0 ||
-      cx + cw > w + 0.001f || cy + ch > h + 0.001f ||
+      !isfinite(cx) || !isfinite(cy) || !isfinite(cw) || !isfinite(ch)) return NULL;
+  /* a crop a little outside the picture (rounding, a caller's off-by-one) is brought inside it rather than failed:
+     a failed picture is an empty card */
+  if (cx < 0) cx = 0; if (cy < 0) cy = 0; if (cx > w - 1) cx = (float)(w - 1); if (cy > h - 1) cy = (float)(h - 1);
+  if (cw > w - cx) cw = w - cx; if (ch > h - cy) ch = h - cy;
+  if (cw <= 0 || ch <= 0 ||
       (size_t)nw > SIZE_MAX / 4 / (size_t)nh ||
       (size_t)nw > SIZE_MAX / sizeof(Axis) ||
       (size_t)nh > SIZE_MAX / sizeof(Axis)) return NULL;

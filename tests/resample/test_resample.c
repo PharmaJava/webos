@@ -45,8 +45,8 @@ static void crop_bounds(void) {
   unsigned char src[]={10,10,10,255, 30,30,30,255, 50,50,50,255};
   unsigned char *dst=sb_resample_rgba(src,3,1,1,0,2,1,4,1);assert(dst);
   near(dst[0],30,"crop left");near(dst[12],50,"crop right");free(dst);
-  assert(!sb_resample_rgba(src,3,1,-1,0,2,1,4,1));
-  assert(!sb_resample_rgba(src,3,1,2,0,2,1,4,1));
+  /* a crop a little outside the picture is brought inside it (a failed picture is an empty card) */
+  { unsigned char *c1=sb_resample_rgba(src,3,1,-1,0,2,1,4,1),*c2=sb_resample_rgba(src,3,1,2,0,2,1,4,1); assert(c1&&c2); free(c1); free(c2); }
   assert(!sb_resample_rgba(src,3,1,0,0,2,1,0,1));
   assert(!sb_resample_rgba(src,3,1,0,0,NAN,1,4,1));
   /* A single source pixel must replicate without reading a neighbour. */

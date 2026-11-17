@@ -6,7 +6,7 @@
 #include "core/anim.h"
 #include "core/stremio.h"
 
-typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_ANIME, SCR_MOVIES, SCR_SERIES, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_N } Scr;
+typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_MOVIES, SCR_SERIES, SCR_ANIME, SCR_N } Scr; /* (Stremio Claude: the last three, its own tabs) */
 typedef struct {
   void (*enter)(const void *params);
   void (*leave)(void);
@@ -27,13 +27,14 @@ extern Scr SCR;
 extern Screen *screens[SCR_N];
 extern Screen *app_overlay;
 void app_overlay_keep(Screen *s);     /* an overlay that draws something of its own while closed (an action's chip): drawn and ticked from now on */           /* a sheet or menu over the screen (streams, the card menu): keys go there first */
-void app_init(int drawableW, int drawableH);
+void app_init(void);
 void app_register(Scr s, Screen *sc);
 void app_go(Scr s, const void *params, int noStack);
 void app_back(void);
 void app_key(int k, int down, int repeat);
 void app_text(const char *utf8);
 void app_tick(float dt);
+void app_tick_behind(float dt);       /* behind another app (core/away.c): only what must go on, nothing drawn */
 void app_draw(void);
 void app_draw_under(void);            /* the page under the sheets (for their glass): backdrop, screen, top bar */
 float app_screen_alpha(void);         /* the entrance fade of the current screen (0..1) */
@@ -47,6 +48,8 @@ void app_play_from_start(const Item *it);
 void app_open_external(const char *url, const char *name);  /* an addon's outside link: a stremio:///detail page here, else a code for the phone */
 void app_refresh_boards(void);        /* the library changed: the boards rebuild */
 extern int app_splash_done;
+extern int app_launch_cast;   /* opened by a phone to play something: the background trailer waits for its play */
+void app_launch_params(const char *json); /* the launch (or relaunch) parameters as JSON: {"cast":1} holds the background trailer for the phone's play */
 void app_reveal_start(void);                        /* first launch: the page rises in once the splash goes */
 float app_reveal_x(float delay, float dur);         /* 0..1 of that entrance for a block with this delay (1 when none runs) */
 int  app_revealing(void);
@@ -60,6 +63,8 @@ unsigned app_bg_gen(void);
 int app_bg_pending(void);   /* a new backdrop is asked for and on its way */
 void app_glow_kick(void);              /* the phone sent words: Search's glows surge and spring back */             /* bumps each time a new backdrop takes over */
 float app_idle(void);
+void app_activity(void); /* a phone's command counts as activity, as a key does */
+void  app_pace_again(void);                  /* the screen's frame rate measured again at the next quiet moment */
 float app_trailer_idle(void);           /* seconds since a key other than OK (the background trailer's own idleness) */                 /* seconds since the last key */
 int  app_rtl(void);
 void app_occluder(float x, float y, float w, float h); /* an opaque panel holding still: the backdrop is not drawn under it (next frame) */
@@ -76,8 +81,12 @@ float nudge_y(const Nudge *n);
 
 /* hold OK: 0..1 of the way to the card menu (the line that runs around the card) */
 float app_hold_progress(void);
+void  app_card_shake(void);      /* a held card that has no menu (a collection): a short soft shake of the focused card, nothing else */
+float app_card_shake_dx(void);  /* its offset now (0 when still), for the screens to add to the focused card */
 int  app_key_held(void);               /* the key being handled repeats a held one (screens glide instead of popping) */
 int  app_ok_down(void);                /* OK is held down now (a sheet's own hold reads it) */
+int   app_clock_12(void); /* Settings › Appearance › Clock: 12-hour (3:30 PM) rather than 24-hour (15:30) */
+void  app_fmt_hm(int h, int m, char *out, size_t cap); /* a time of day as that setting says */
 void  app_clock_draw(float right, float y, float alpha); /* the pages' clock, its right edge at x (the player's too) */
 void  app_clock_top(void); /* the bar's clock over the start screen and the guide (main, last) */
 float app_hold_k(double since);        /* 0..1 of a hold begun then, on the same clock as the card menu's line */
@@ -90,8 +99,9 @@ float app_hold_k(double since);        /* 0..1 of a hold begun then, on the same
 #define NAV_MOV 4     /* Stremio Claude: films only, by category */
 #define NAV_SER 5     /* Stremio Claude: series only, by category */
 #define NAV_LIB 6
-#define NAV_ANIME 7   /* the last tab: anime only (the numbers follow the order on screen: Right/Left step through them) */
-#define NAV_TABS 6    /* how many chips the bar carries (Discover, Home, Films, Series, Library, Anime) */
+#define NAV_ANIME 7   /* Stremio Claude: anime catalogs only */
+#define NAV_LAST 7    /* the last tab (the numbers follow the order on screen) */
+#define NAV_TABS 6
 typedef struct { int idx, active; int want; double swAt; Nudge nudge; Tween px, pw, pill; float pillShown; Tween cornerF[2], cornerS[2], dotK[2]; Tween setRot; float chipX[8], chipW[8]; int laidOut; } TopNav;
 extern TopNav topNav;
 void topnav_focus(void);
@@ -104,8 +114,6 @@ void bg_set(const char *url, int delayMs, const char *alt);   /* crossfades to t
 void bg_clear(void);
 void bg_draw(void);
 void bg_tick(float dt);
-/* One-way 1080p -> 720p downgrade under memory pressure (main thread). */
-void bg_memory_pressure(int availableMb, int appRssMb, int totalMb);
 void bg_set_mode(int detail);                                  /* the shading: a title page shows more of the cover */
 const char *bg_current(void);
 void app_ambient_guide(int mode);                             /* the guide takes Settings' two glows for its page: 1 up, 2 fading out, 0 gone */

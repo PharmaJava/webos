@@ -1,54 +1,67 @@
 ![Stremio Origin](docs/header-rounded.png)
 
 <p align="center">
-  <img src="docs/logo-pill.png" width="200" alt="Stremio Origin">
+  <img src="docs/logo-pill.png" width="200" alt="Stremio Origin" align="middle">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/platform-lg.svg" height="72" alt="LG" align="middle">
 </p>
 
 <h1 align="center">Stremio Claude</h1>
 
-<p align="center"><strong>A fork of <a href="https://github.com/stremio-origin/webos">Stremio Origin</a> (same app id, installs over it and keeps its data), with fixes found on a real LG OLED (webOS 6.5):</strong></p>
+<p align="center"><strong>A fork of <a href="https://github.com/stremio-origin/webos">Stremio Origin</a> that follows it release by release (now 1.1.1, with every improvement of the original app) and adds, on top (same app id: it installs over Stremio Origin and keeps its data):</strong></p>
 
-- **No more closing mid-film.** libtorrent's `peer_connection::reject_piece` kept a stale end while erasing (`tools/engine/libtorrent.patch`); the engine's
-  streaming window calls it whenever it frees far pieces, so the app crashed every few minutes (SIGSEGV in `memmove`, always the same address).
+- **Films and Series tabs**, each with today's **Top 10** (big rank numbers), popular, top rated, this year's, last year's and every genre, from Cinemeta;
+  and an **Anime tab** with the anime catalogs of your addons. Tabs: Discover, Home, Films, Series, Library, Anime.
 - **Subtitles that stay in time.** Two "unsure" references from one release (the same timing in two languages) no longer count as two opinions in the
-  automatic sync (it had moved a film's subtitles by +45 s).
-- **No TV screensaver over a film** (upstream PR #15) and **a pointer that really hides** on the arrows, on Back and when the hand is still (upstream PR #14,
-  plus Back).
+  automatic sync.
+- **The pointer when you want it:** moving the remote, turning or pressing the wheel brings it out, and only Back puts it away.
 - **Back leaves the video at once**, with the controls up too.
-- Updates come from this repository's releases. Offered in [FreeTV](https://github.com/PharmaJava/FreeTV)'s store.
+- Our fix for the torrent engine closing the app mid-film (libtorrent `reject_piece`) is now part of Stremio Origin itself.
+- **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
+- **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
 <p align="center"><em>Unofficial and independent: not affiliated with, endorsed by or sponsored by Stremio or Anthropic. The names only describe compatibility and how it was made.</em></p>
 
 ---
 
-<h1 align="center">Stremio Origin</h1>
+<h1 align="center">Stremio Origin for LG webOS</h1>
 
-<p align="center">A native TV app for Stremio addons, written in C.</p>
+<p align="center">A native app for Stremio addons, written in C.</p>
 
-<p align="center"><em>Stremio™ is a trademark of its owner. Stremio Origin is independent and unofficial, and is not affiliated with, endorsed by or sponsored by Stremio. The name only describes compatibility.</em></p>
+<p align="center"><em>Stremio™ is a trademark of its owner. Stremio Origin is independent and unofficial, and is not affiliated with, endorsed by or sponsored by Stremio. LG is a trademark of its owner; its logo only shows which platform this is for.</em></p>
 
-<p align="center">You bring your own Stremio account and your own addons. The app ships empty, hosts and indexes nothing, and plays only the stream links your addons return.</p>
+<p align="center">You bring your own Stremio account and your own addons. The app ships empty and plays only the stream links your addons return.</p>
 
 ## Features
-- Home, Discover, Library and Search from your addons, with artwork, logos and trailers
-- The best stream for your TV and connection, picked in one press
-- Buttons and highlights take their colour from each title's logo or artwork
-- People, reviews and a spotlight of what's new on every title
-- A player with episodes, sources, subtitles and audio, skip intro and recap, and a next-episode card
-- Styled subtitles as the film made them, subtitle sync, and optional forced-only subtitles in a chosen language
-- DTS sound converted on the TV, and Dolby Vision on TVs that support it
-- Torrent playback with a buffer sized to your TV, and an optional USB drive
-- Cast to the TV from your phone (the Android app is almost done)
+- Seek previews: a picture of the film on the seek bar, for debrid and direct links
+- Trakt: link with a code, scrobbling, rows on Home, watched marks and Continue Watching from Trakt
+- Home, Discover, Library and Search, with the addons from your Stremio account
+- Film collections in order, in the Library too, and the next film after the credits
+- Live TV and sports from your addons, with All channels, Favorites, Recent and a preview as you browse
+- The best stream picked in one press, and a sources tray with a tab for each addon
+- Styled subtitles as the film made them, with fonts (Arabic too), size, colour, position, brightness and sync
+- Forced-only subtitles; each show remembers its subtitles and audio, original language by default
+- Chapters, skip intro and recap, and a next-episode card in two sizes
+- Auto-play next episode, and a trailer behind Home
+- Spoilers blurred for episodes you haven't watched, and upcoming episodes on Home
+- A viewer notice as a film starts: an age and its reasons, from IMDb's Parents Guide
+- A row for every catalog, with artwork, logos, trailers, people, reviews and ratings
+- Titles and descriptions in your language
 - Library, watched state and Continue Watching synced with your Stremio account
-- 12 languages, including Arabic (right to left) and Hungarian
-- Updates from inside the app
+- Accent colour, a 12 or 24 hour clock and interface sounds
+- Dolby Vision on TVs that support it
+- DTS sound converted on the TV
+- Torrents, with an optional USB drive
+- Picture size: original, fill or zoom
+- The app's own screen saver
+- The pointer hides when idle, and OK presses what you point at
+- 28 languages, Arabic included (right to left); updates and Share logs from the app
 
 ## Install
-For LG TVs running webOS 3 and later (ARM). Tested on webOS 4.4; this fork also fixes startup on webOS 3.9.2, with initial playback checks on an OLED55E7N. The upstream 1.0.0 IPK does not include that fix. [Compatibility](docs/compatibility.md)
+LG TVs on webOS 3 or later (ARM). With the Homebrew Channel, search for Stremio Origin. If it doesn't show up, add the repository `https://stremio-origin.github.io/webos/apps.json`. Or install the `.ipk` from [Releases](https://github.com/stremio-origin/webos/releases) with the TV in Developer Mode.
 
-- With the Homebrew Channel: add the repository `https://stremio-origin.github.io/webos/apps.json`,
-  then install Stremio Origin.
-- Or download the `.ipk` from Releases and install it on a TV in Developer Mode.
+## Compatibility
+Developed and tested on webOS 4.4, and reported working on webOS 4 to 25. [More](docs/compatibility.md).
 
 **Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…), experimental:** the same app, built for Android
 (`tools/build-android.sh`, see `androidtv/`), torrents included (the same engine and patches, built with the NDK: `tools/build-engine-android.sh`).
@@ -62,16 +75,17 @@ Releases: `.github/workflows/android.yml` publishes `android-tv-v<version>` from
 ## Privacy
 - Sign-in goes directly to Stremio. Your account stays on the TV.
 - No analytics. Nothing is sent to the developer.
-- Logs stay on the TV. Sharing them is your choice: the app seals them and shows a short code.
-- Trakt is optional. You link it on the TV with a code, and the sign-in stays on the TV.
-- While it is linked, what you watch is added to your Trakt history, and the app reads your Trakt name and viewing stats to show them in Settings.
+- Logs stay on the TV. Sharing them is your choice: Settings > About > Share logs.
 
 ## Trakt
+Trakt is optional. You link it with a code and the sign-in stays on the TV. While it is linked, what you watch is added to your Trakt history. The app also reads your Trakt name and stats, history, watchlist, recommendations, watched marks and paused positions, only to show them in the app. Unlink any time: Settings > Trakt > Disconnect Trakt.
+
 Stremio Origin uses Trakt but is not endorsed or certified by Trakt.
 
 ## Support
-- Issues: https://github.com/stremio-origin/webos/issues
-- Support: https://ko-fi.com/simussu
+- <img src="docs/heart.svg" height="18" align="top"> Support the project / Request a feature: [Ko-fi](https://ko-fi.com/simussu) <img src="docs/heart.svg" height="18" align="top">
+- <img src="docs/discord.svg" height="18" align="top"> [Discord](https://discord.gg/SJEtyV3kW6)
+- Report bugs/issues: [stremio-origin/webos/issues](https://github.com/stremio-origin/webos/issues)
 
 ## Credits
 - Interface sounds: [Interface Sounds](https://kenney.nl/assets/interface-sounds) by Kenney (CC0).
@@ -80,3 +94,5 @@ Stremio Origin uses Trakt but is not endorsed or certified by Trakt.
 
 ## Licence
 GPL-3.0, see [LICENSE](LICENSE). Third-party components and their licences: [third_party/licenses/README.txt](third_party/licenses/README.txt).
+
+Provided as is, for personal use on devices you own.
