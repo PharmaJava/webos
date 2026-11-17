@@ -17,6 +17,7 @@
 - **The pointer when you want it:** moving the remote, turning or pressing the wheel brings it out, and only Back puts it away.
 - **Back leaves the video at once**, with the controls up too.
 - Our fix for the torrent engine closing the app mid-film (libtorrent `reject_piece`) is now part of Stremio Origin itself.
+- **Straight to the point:** no tour after signing in, no news page after an update, no tip or GitHub cards (the guide stays in Settings).
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 

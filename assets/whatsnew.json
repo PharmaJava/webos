@@ -1,5 +1,5 @@
 {
- "version": "1.2.1",
+ "version": "1.2.2",
  "items": [
   {
    "icon": "wn_best",
@@ -62,11 +62,5 @@
    "text": "Greek, Brazilian Portuguese, Romanian and Hungarian among them."
   },
   "And much more."
- ],
- "support": {
-  "title": "Thank you",
-  "message": "Thank you!",
-  "url": "https://ko-fi.com/simussu",
-  "github": "https://github.com/stremio-origin/webos"
- }
+ ]
 }
