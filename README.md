@@ -19,6 +19,7 @@
 - Our fix for the torrent engine closing the app mid-film (libtorrent `reject_piece`) is now part of Stremio Origin itself.
 - **Straight to the point:** no tour after signing in, no news page after an update, no tip or GitHub cards (the guide stays in Settings).
 - **No LG screensaver inside the app**, in the menus or over a video: the app answers the TV from the start (before, only once a video had played).
+- **Picked from Stremio Origin's open PRs** (1.2.5): sharper Continue Watching cards (#55), long release names that wrap at their dots and dashes (#67), and **Similar from TMDB's recommendations** in your language (#80, opened by IMDb id so the addons find streams; Cinemeta's genre without a key).
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
