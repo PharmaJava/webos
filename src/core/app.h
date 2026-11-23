@@ -6,7 +6,7 @@
 #include "core/anim.h"
 #include "core/stremio.h"
 
-typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_MOVIES, SCR_SERIES, SCR_ANIME, SCR_N } Scr; /* (Stremio Claude: the last three, its own tabs) */
+typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_PROFILES, SCR_MOVIES, SCR_SERIES, SCR_ANIME, SCR_N } Scr; /* (Stremio Claude: the last three, its own tabs) */
 typedef struct {
   void (*enter)(const void *params);
   void (*leave)(void);
@@ -92,17 +92,11 @@ void  app_clock_top(void); /* the bar's clock over the start screen and the guid
 float app_hold_k(double since);        /* 0..1 of a hold begun then, on the same clock as the card menu's line */
 
 /* ---- the top bar ---- */
-#define NAV_SET 0       /* the bar reads Settings, Search, the three tabs (as the page) */
-#define NAV_SEARCH 1
-#define NAV_DISC 2
-#define NAV_HOME 3
-#define NAV_MOV 4     /* Stremio Claude: films only, by category */
-#define NAV_SER 5     /* Stremio Claude: series only, by category */
-#define NAV_LIB 6
-#define NAV_ANIME 7   /* Stremio Claude: anime catalogs only */
-#define NAV_LAST 7    /* the last tab (the numbers follow the order on screen) */
-#define NAV_TABS 6
-typedef struct { int idx, active; int want; double swAt; Nudge nudge; Tween px, pw, pill; float pillShown; Tween cornerF[2], cornerS[2], dotK[2]; Tween setRot; float chipX[8], chipW[8]; int laidOut; } TopNav;
+enum { NAV_SET, NAV_SEARCH, NAV_PROFILES, NAV_DISC, NAV_HOME, NAV_MOV, NAV_SER, NAV_LIB, NAV_ANIME, NAV_COUNT }; /* (Stremio Claude: Films, Series, Anime) */
+#define NAV_LAST (NAV_COUNT - 1)
+typedef struct { int idx, active; int want; double swAt; Nudge nudge; float chipX[NAV_COUNT], chipW[NAV_COUNT]; int laidOut; } TopNav;
+int app_pick_profile(int id);
+void app_cancel_profiles(void);
 extern TopNav topNav;
 void topnav_focus(void);
 void topnav_draw(void);
