@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-enum { PROFILE_DEFAULT = 1, PROFILE_MAX = 12, PROFILE_NAME_CAP = 64, PROFILE_AVATAR_COUNT = 9 };
+enum { PROFILE_DEFAULT = 1, PROFILE_MAX = 12, PROFILE_NAME_CAP = 64, PROFILE_AVATAR_COUNT = 18 };
 
 void profiles_init(void);
 int profiles_count(void);

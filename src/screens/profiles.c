@@ -18,11 +18,11 @@
 #include <string.h>
 
 enum { PICK, MANAGE, ADD, RENAME, CONFIRM_DELETE, AVATARS };
-enum { COLUMNS = 5 };
+enum { COLUMNS = 5, AVATAR_COLUMNS = 6 };
 enum { MENU_RENAME, MENU_AVATAR, MENU_DELETE };
 static struct {
   int tile, option, avatar_choice, mode, id, edit_error, after_login;
-  int holding, held_id;
+  int holding, held_id, fresh; /* fresh: the avatar choice of a profile just added (Back or OK: the picker) */
   double hold_at;
   char name[PROFILE_NAME_CAP];
   Osk keyboard;
@@ -55,14 +55,16 @@ static void edit_open(int mode, int id) {
   if (mode == CONFIRM_DELETE) return;
   snprintf(P.name, sizeof P.name, "%s", mode == RENAME ? label(id) : "");
   if (plat_text_input()) SDL_StartTextInput();
-  else osk_open(&P.keyboard);
+  else { osk_open(&P.keyboard); P.keyboard.shift = !*P.name; }
 }
 
 static void save_name(void) {
-  int saved = P.mode == ADD ? profiles_add(P.name) : profiles_rename(P.id, P.name);
+  int adding = P.mode == ADD;
+  int saved = adding ? profiles_add(P.name) : profiles_rename(P.id, P.name);
   if (!saved) { P.edit_error = 1; return; }
   edit_close();
   if (saved > 1) P.tile = profiles_count() - 1;
+  if (adding && saved > 1) { P.id = saved; P.fresh = 1; P.avatar_choice = profiles_avatar(saved); set_mode(AVATARS); } /* then its picture */
 }
 
 static int can_delete(void) {
@@ -124,13 +126,12 @@ static int key(int k) {
   }
   if (P.mode == AVATARS) {
     int i = P.avatar_choice;
-    if (k == K_BACK) set_mode(MANAGE);
-    else if (k == K_OK && profiles_set_avatar(P.id, i)) set_mode(MANAGE);
-    else if (k == K_LEFT && i % COLUMNS) P.avatar_choice--;
-    else if (k == K_RIGHT && i % COLUMNS < COLUMNS - 1 && i + 1 < PROFILE_AVATAR_COUNT) P.avatar_choice++;
-    else if (k == K_UP && i >= COLUMNS) P.avatar_choice -= COLUMNS;
-    else if (k == K_DOWN && i < COLUMNS)
-      P.avatar_choice = i + COLUMNS < PROFILE_AVATAR_COUNT ? i + COLUMNS : PROFILE_AVATAR_COUNT - 1;
+    if (k == K_BACK) { if (P.fresh) { P.fresh = 0; P.mode = PICK; } else set_mode(MANAGE); }
+    else if (k == K_OK && profiles_set_avatar(P.id, i)) { if (P.fresh) { P.fresh = 0; P.mode = PICK; } else set_mode(MANAGE); }
+    else if (k == K_LEFT && i % AVATAR_COLUMNS) P.avatar_choice--;
+    else if (k == K_RIGHT && i % AVATAR_COLUMNS < AVATAR_COLUMNS - 1 && i + 1 < PROFILE_AVATAR_COUNT) P.avatar_choice++;
+    else if (k == K_UP && i >= AVATAR_COLUMNS) P.avatar_choice -= AVATAR_COLUMNS;
+    else if (k == K_DOWN && i + AVATAR_COLUMNS < PROFILE_AVATAR_COUNT) P.avatar_choice += AVATAR_COLUMNS;
     return 1;
   }
   if (P.mode == CONFIRM_DELETE) {
@@ -148,7 +149,9 @@ static int key(int k) {
       if (renaming) set_mode(MANAGE);
     }
     else if (P.keyboard.open) {
+      size_t was = strlen(P.name);
       if (osk_key(&P.keyboard, k, P.name, sizeof P.name) == 2) save_name();
+      else { size_t n = strlen(P.name); if (n != was && (!n || P.name[n - 1] == ' ')) P.keyboard.shift = 1; } /* a capital to start each word */
     } else if (k == K_OK || k == K_DOWN) save_name();
     return 1;
   }
@@ -229,13 +232,14 @@ static void heading(const char *title, float y) {
 
 static void draw_panel(void) {
   if (P.mode == AVATARS) {
-    const float size = 157, step = 181;
-    glass_rrect(SB_W / 2 - 498, 215, 996, 542, 28, RGB(21,18,31), .14f, .02f, .19f);
-    heading(T("Choose an avatar"), 251);
+    const float size = 150, step = 172;
+    glass_rrect(SB_W / 2 - 560, 140, 1120, 740, 28, RGB(21,18,31), .14f, .02f, .19f);
+    heading(T("Choose an avatar"), 168);
     for (int i = 0; i < PROFILE_AVATAR_COUNT; i++) {
-      int row = i / COLUMNS, cols = row ? PROFILE_AVATAR_COUNT - COLUMNS : COLUMNS;
-      int col = app_rtl() ? cols - 1 - i % COLUMNS : i % COLUMNS;
-      float x = (SB_W - (cols - 1) * step - size) / 2 + col * step, y = 350 + 185 * row;
+      int row = i / AVATAR_COLUMNS, left = PROFILE_AVATAR_COUNT - row * AVATAR_COLUMNS;
+      int cols = left < AVATAR_COLUMNS ? left : AVATAR_COLUMNS;
+      int col = app_rtl() ? cols - 1 - i % AVATAR_COLUMNS : i % AVATAR_COLUMNS;
+      float x = (SB_W - (cols - 1) * step - size) / 2 + col * step, y = 262 + 200 * row;
       unsigned long long focus_key = lift_key(&P.avatar_choice, i);
       lift_begin(focus_key, P.avatar_choice == i, 0, x, y, size, size, size / 2);
       profile_draw_avatar(i, x, y, size);
