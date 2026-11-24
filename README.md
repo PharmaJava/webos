@@ -21,6 +21,7 @@
 - **No LG screensaver inside the app**, in the menus or over a video: the app answers the TV from the start (before, only once a video had played).
 - **Picked from Stremio Origin's open PRs** (1.2.5): sharper Continue Watching cards (#55), long release names that wrap at their dots and dashes (#67), and **Similar from TMDB's recommendations** in your language (#80, opened by IMDb id so the addons find streams; Cinemeta's genre without a key).
 - **Back asks before leaving** (1.2.6): at the top, a card asks "Leave the app?" with Stay focused; Back again stays, so nobody leaves by pressing Back again and again.
+- **Viewer profiles** (1.3.0, Stremio Origin's PR #111, with its faster icons and launch splash): each person in the house has their own history, Continue Watching and Trakt, picked on "Who's watching?" (with one profile the app goes straight to Home, as before). The profile keyboard works with the Magic Remote's pointer and starts each word with a capital, a new profile goes on to its avatar, and there are **18 avatars**, superheroes among them (all drawn for this app).
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
