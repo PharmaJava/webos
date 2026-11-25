@@ -7,6 +7,7 @@
 #include "core/traktrows.h"
 #include "core/kids.h"
 #include "core/platforms.h"
+#include "core/tdisc.h"
 #include "core/traktwatch.h"
 #include "core/forcedsubs.h"
 #include "core/net.h"
@@ -246,8 +247,15 @@ int sb_home_defs(CatalogDef *out, int max) {
    as the official app does) and never when it needs a search or a list of ids */
 static int disc_cat_ok(const cJSON *cat, char *ex, size_t cap) { const char *t = js_str(cat, "type", NULL), *id = js_str(cat, "id", NULL);
   return t && id && *t && *id && strcmp(t, "tv") && strcmp(t, "channel") && addon_cat_default_extra(cat, ex, cap) == 0; }
+static int disc_types_addons(char (*out)[16], int max);
 int sb_disc_types(char (*out)[16], int max) {
-  if (kids_on()) { int n = 0; if (n < max) snprintf(out[n++], 16, "movie"); if (n < max) snprintf(out[n++], 16, "series"); return n; }
+  if (kids_on() || tdisc_on()) { int n = 0; if (n < max) snprintf(out[n++], 16, "movie"); if (n < max) snprintf(out[n++], 16, "series");
+    if (kids_on()) return n; char t[16][16]; int m = disc_types_addons(t, 16); /* (Stremio Claude: TMDB's films and series first, the addons' other types after) */
+    for (int i = 0; i < m && n < max; i++) if (strcmp(t[i], "movie") && strcmp(t[i], "series")) snprintf(out[n++], 16, "%s", t[i]);
+    return n; }
+  return disc_types_addons(out, max);
+}
+static int disc_types_addons(char (*out)[16], int max) {
   int n = 0; cJSON *a = sb_addons(); const cJSON *ad; static const char *const first[] = { "movie", "series" };
   for (int f = 0; f < 3; f++) { if (a) cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) continue; const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat;
       if (cats) cJSON_ArrayForEach(cat, cats) { char ex[200]; if (!disc_cat_ok(cat, ex, sizeof ex)) continue; const char *t = js_str(cat, "type", "");
@@ -256,8 +264,16 @@ int sb_disc_types(char (*out)[16], int max) {
   if (!n && max >= 2) { copy_str(out[0], 16, "movie"); copy_str(out[1], 16, "series"); n = 2; }
   return n;
 }
+static int disc_cats_addons(const char *type, CatalogDef *out, char (*addon)[64], int max);
 int sb_disc_cats(const char *type, CatalogDef *out, char (*addon)[64], int max) {
-  if (kids_on()) { int n = kids_disc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) snprintf(addon[i], 64, "TMDB"); return n; }
+  if (kids_on()) { int n = kids_disc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) addon[i][0] = 0; return n; }
+  if (!tdisc_on() || (strcmp(type, "movie") && strcmp(type, "series"))) return disc_cats_addons(type, out, addon, max);
+  int n = tdisc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) addon[i][0] = 0; /* (Stremio Claude: Discover in order) */
+  int m = disc_cats_addons(type, out + n, addon ? addon + n : NULL, max - n);
+  if (m == 1 && (!strcmp(out[n].key, "dcm") || !strcmp(out[n].key, "dcs"))) m = 0; /* (no addon catalog: no stand-in "Popular" twice) */
+  return n + m;
+}
+static int disc_cats_addons(const char *type, CatalogDef *out, char (*addon)[64], int max) {
   int n = 0, ai = 0; cJSON *a = sb_addons(); const cJSON *ad;
   if (a) cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) { ai++; continue; } const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat; char base[512]; addon_base(ad, base, sizeof base); int ci = 0;
     if (cats) cJSON_ArrayForEach(cat, cats) { char ex[200];
@@ -275,7 +291,7 @@ int sb_disc_cats(const char *type, CatalogDef *out, char (*addon)[64], int max) 
 static const cJSON *disc_cat_of(const CatalogDef *d) { int ai, ci; if (sscanf(d->key, "dc%d_%d", &ai, &ci) != 2) return NULL; cJSON *a = sb_addons(); const cJSON *ad = a ? cJSON_GetArrayItem(a, ai) : NULL;
   return ad ? cJSON_GetArrayItem(js_arr(js_obj(ad, "manifest"), "catalogs"), ci) : NULL; }
 int sb_disc_cat_genres(const CatalogDef *d, char (*out)[48], int max, int *required) {
-  if (kids_url(d->url)) { *required = 0; return 0; }
+  if (kids_url(d->url)) { *required = 0; return tdisc_genres(d, out, max); }
   *required = 0; const cJSON *cat = disc_cat_of(d), *opts = NULL, *o; int req = 0, n = 0; static const char *const G[] = { "genre" };
   if (!cat || !addon_cat_extra(cat, "genre", &req, &opts, NULL) || !opts) return 0;
   *required = req; (void)G;
@@ -284,6 +300,7 @@ int sb_disc_cat_genres(const CatalogDef *d, char (*out)[48], int max, int *requi
 }
 /* the catalog asked with that genre (none: as it is) */
 void sb_disc_with_genre(CatalogDef *d, const char *genre) {
+  if (kids_url(d->url)) { tdisc_with_genre(d, genre); return; }
   const cJSON *cat = disc_cat_of(d); char ex[200] = "";
   if (cat) { const char *nm; int req; const cJSON *o; addon_cat_default_extra(cat, ex, sizeof ex);
     if (genre && *genre) { ex[0] = 0; addon_extra_add(ex, sizeof ex, "genre", genre); /* (its other required ones, as they were) */

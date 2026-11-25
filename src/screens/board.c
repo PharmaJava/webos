@@ -152,8 +152,8 @@ static void closing_row(Board *b, const KeptRow *kp, int nk, const char *title, 
   z->hidden = 0; z->closing = 1; z->closeAt = app_now(); z->hk = 1; z->round = round; row_ghosts(z, k, NULL); }
 static void board_cw_row(Board *b, const KeptRow *kp, int nk) {
   ItemList cw; if (lib_cw_items(&cw) > 0) { Row *r = row_add(b, "Continue Watching", 1, 0); if (r) { r->items = cw; r->hidden = 0; } else itemlist_clear(&cw); } else { itemlist_clear(&cw); closing_row(b, kp, nk, "Continue Watching", 1, 0); }
-  ItemList up; if (notify_upcoming(&up) > 0) { Row *r = row_add(b, "Upcoming episodes", 1, 0); if (r) { r->items = up; r->hidden = 0; } else itemlist_clear(&up); } else closing_row(b, kp, nk, "Upcoming episodes", 1, 0); /* the library's series airing in the next two weeks */
   ItemList lv; memset(&lv, 0, sizeof lv); if (b->kind == 0 && live_band(&lv) > 0) { Row *r = row_add(b, "Live TV", 0, 0); if (r) { r->items = lv; r->hidden = 0; r->round = 1; } else itemlist_clear(&lv); } else { itemlist_clear(&lv); if (b->kind == 0) closing_row(b, kp, nk, "Live TV", 0, 1); } /* a live addon installed: All channels, the pinned, a few more */
+  ItemList up; if (notify_upcoming(&up) > 0) { Row *r = row_add(b, "Upcoming episodes", 1, 0); if (r) { r->items = up; r->hidden = 0; } else itemlist_clear(&up); } else closing_row(b, kp, nk, "Upcoming episodes", 1, 0); /* the library's series airing in the next two weeks */
 }
 /* ---- Discover's listing: the catalog chosen in the strip, asked with its genre, as lines of posters; its next page
    asked as the focus nears the end ---- */
@@ -263,6 +263,13 @@ static int disc_catalog(void) { /* the strip's choice into the listing's members
     else if (req && m) sb_disc_with_genre(&d, gg[0]); /* (one that needs a genre: its first, as the official app) */
     DS.m[DS.nm++] = d; }
   return DS.nm > 0; }
+/* one catalog's row: what it had kept, or asked of its source (0: no room for more rows) */
+static int def_row(Board *b, const CatalogDef *d0, KeptRow *kp, int nk) {
+  Row *r = row_add(b, d0[0].title, 0, 0); if (!r) return 0; int ri = (int)(r - b->rows); r->def = d0[0]; r->hasDef = 1; r->round = d0[0].round; /* (the platforms: round badges) */
+    int k = -1; for (int j = 0; j < nk && k < 0; j++) if (same_row(&kp[j], r->title, &r->def, 1)) k = j;
+    if (k >= 0) { r->col = kp[k].col; if (kp[k].items.n) { r->items = kp[k].items; memset(&kp[k].items, 0, sizeof kp[k].items); r->skipAt = kp[k].skipAt; r->more = kp[k].more; r->hidden = 0; return 1; } } /* (what it had, kept: not asked again) */
+    sb_catalog(d0, on_catalog, tok(b, ri)); return 1;
+}
 static void load_catalog_rows(Board *b, int disc, int keep) {
   int oldRow = b->rowIdx; KeptRow *kp = NULL; int nk = 0, focK = -1;
   if (keep && b->n && (kp = calloc((size_t)b->n, sizeof *kp))) { nk = b->n; focK = b->rowIdx < b->n ? b->rowIdx : -1;
@@ -270,16 +277,14 @@ static void load_catalog_rows(Board *b, int disc, int keep) {
       kp[i].off = r->off.v; if (!r->hasDef && r->items.n && (kp[i].ids = malloc(sizeof *kp[i].ids * (size_t)(r->items.n < 48 ? r->items.n : 48)))) { kp[i].nids = r->items.n < 48 ? r->items.n : 48; for (int c = 0; c < kp[i].nids; c++) snprintf(kp[i].ids[c], 64, "%s", r->items.items[c].id); if ((kp[i].was = malloc(sizeof(Item) * (size_t)kp[i].nids))) { memcpy(kp[i].was, r->items.items, sizeof(Item) * (size_t)kp[i].nids); kp[i].nwas = kp[i].nids; } } kp[i].skipAt = r->skipAt; kp[i].more = r->more;
       if (keepItems && r->hasDef && r->items.n) { kp[i].items = r->items; memset(&r->items, 0, sizeof r->items); } } }
   for (int i = 0; i < b->n; i++) row_clear(&b->rows[i]); b->n = 0; b->gen++;
+  static CatalogDef defs[MAXROWS]; int nd = disc ? 0 : b->kind == 2 ? sb_type_defs("movie", defs, MAXROWS - 1) : b->kind == 3 ? sb_type_defs("series", defs, MAXROWS - 1) : b->kind == 4 ? sb_anime_defs(defs, MAXROWS - 1) : b->kind == 5 ? platform_defs(defs, MAXROWS - 1) : sb_home_defs(defs, MAXROWS - 1); /* (Discover: its listing, below) */
+  int band = !disc && live_catalogs() > 0; /* the live row holds live: its catalogs are in the hub (All channels) */
+  int first = 0; if (b->kind == 0 && nd && defs[0].round) { first = 1; def_row(b, &defs[0], kp, nk); } /* (Stremio Claude: the platforms first, then Continue Watching, Live TV and the rest) */
   if (b->kind == 0) board_cw_row(b, kp, nk); /* (Stremio Claude: Continue Watching, Upcoming and Live TV on Home only, not on Films, Series or Anime) */
   if (disc) { Row *f = row_add(b, "", 0, 0); if (f) { f->filt = 1; f->hidden = 0; } } /* Discover: the filter strip under the spotlight's dots */
-  static CatalogDef defs[MAXROWS]; int nd = disc ? 0 : b->kind == 2 ? sb_type_defs("movie", defs, MAXROWS - 1) : b->kind == 3 ? sb_type_defs("series", defs, MAXROWS - 1) : b->kind == 4 ? sb_anime_defs(defs, MAXROWS - 1) : b->kind == 5 ? platform_defs(defs, MAXROWS - 1) : sb_home_defs(defs, MAXROWS - 1); /* (Discover: its listing, below) */
   if (disc) { DS.gen++; itemlist_clear(&DS.all); for (int i = 0; i < DMEM; i++) { itemlist_clear(&DS.part[i]); DS.used[i] = DS.has[i] = DS.mMore[i] = DS.mSkip[i] = DS.mWait[i] = 0; } DS.more = DS.paging = 0; DS.skipAt = 0; DS.pageAt = 0; DS.askAt = 0;
     if (disc_catalog()) { DS.askAt = app_now(); for (int i = 0; i < DS.nm; i++) sb_catalog_url(DS.m[i].url, DS.m[i].type, 100, on_disc, DUD(i)); fprintf(stderr, "[disc] %s %s (%d catalog%s)%s%s\n", FL.type, DS.m[0].title, DS.nm, DS.nm == 1 ? "" : "s", FL.genre[0] ? " · " : "", FL.genre); } } /* (one row kept for Continue Watching, or the strip) */
-  int band = !disc && live_catalogs() > 0; /* the live row holds live: its catalogs are in the hub (All channels) */
-  for (int d = 0; d < nd; d++) { if (band && live_type(defs[d].type)) continue; Row *r = row_add(b, defs[d].title, 0, 0); if (!r) break; int ri = (int)(r - b->rows); r->def = defs[d]; r->hasDef = 1; r->round = defs[d].round; /* (the platforms: round badges) */
-    int k = -1; for (int j = 0; j < nk && k < 0; j++) if (same_row(&kp[j], r->title, &r->def, 1)) k = j;
-    if (k >= 0) { r->col = kp[k].col; if (kp[k].items.n) { r->items = kp[k].items; memset(&kp[k].items, 0, sizeof kp[k].items); r->skipAt = kp[k].skipAt; r->more = kp[k].more; r->hidden = 0; continue; } } /* (what it had, kept: not asked again) */
-    sb_catalog(&defs[d], on_catalog, tok(b, ri)); }
+  for (int d = first; d < nd; d++) { if (band && live_type(defs[d].type)) continue; if (!def_row(b, &defs[d], kp, nk)) break; }
   if (keep) for (int i = 0; i < b->n; i++) { Row *r = &b->rows[i]; if (r->hasDef || r->closing || r->filt || r->grid) continue; int found = 0;
     for (int j = 0; j < nk && !found; j++) if (same_row(&kp[j], r->title, &r->def, 0)) found = 1;
     if (!found && nk && r->title[0]) { r->opening = 1; r->openAt = app_now(); r->hk = 0; tween_set(&r->a, 0); for (int c = 0; c < r->items.n && c < 48; c++) r->oldIdx[c] = -1; r->moveAt = app_now(); r->moveOff = 0; continue; } /* a row just come (Upcoming after a mark): it opens, its cards fading in */
