@@ -1038,7 +1038,8 @@ static int board_warm(Board *b) {
   const Item *it = focused_of(b); if (!it) return 0;
   if (b->kind == 1 && spotOn(b) && !b->nfeat) return 0; /* the spotlight's titles first */
   int sp = spotOn(b), row = sp ? FEAT_ROW : b->rowIdx, col = sp ? b->featIdx % b->nfeat : b->rows[b->rowIdx].col;
-  if (!sb_meta_cached(it->type, it->id)) meta_ask(b, row, col);
+  int nometa = !strcmp(it->type, "platform") || !strncmp(it->id, "tmdb:", 5); /* (Stremio Claude: a platform, Surprise me or a TMDB title: no Cinemeta page to wait for) */
+  if (!nometa && !sb_meta_cached(it->type, it->id)) meta_ask(b, row, col);
   int loc = !tmdb_wanted(it->id) || tmdb_loc(it->type, it->id, 1) != NULL; /* (asks for it) */
   char u[512]; int pics = 1, cards = 1;
   /* pictures only where memory allows: on a small budget another tab's pictures would push out the ones on screen
@@ -1047,7 +1048,7 @@ static int board_warm(Board *b) {
     logo_src(it, u, sizeof u); if (u[0]) { img_prefetch_pri(u, 520, 175); pics = pics && (img_loaded(u) || img_failed(u)); }
     if (sb_bg_mid(it, u, sizeof u)[0]) { img_get(u, 1280, 720, NULL); pics = pics && (img_loaded(u) || img_failed(u)); } /* at the size the backdrop draws it */
     cards = first_cards(b, b->kind == 1 ? 1 : 2); }
-  return loc && pics && cards && sb_meta_cached(it->type, it->id) != NULL;
+  return loc && pics && cards && (nometa || sb_meta_cached(it->type, it->id) != NULL);
 }
 /* right after start: Discover, Home and the Library get their first screen ready one after the other, a little
    at a time (every quarter second, never while the remote moves), so a tab switch never shows a first load; each
