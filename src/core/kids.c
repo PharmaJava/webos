@@ -108,6 +108,7 @@ static int cinemeta(int kind, CatalogDef *out, int max) {
     snprintf(d->url, sizeof d->url, "%s/%s.json", d->path, d->extra); snprintf(d->key, sizeof d->key, "kc_%d", (int)i); d->skip = 1; }
   return n; }
 
+int foryou_defs(int kind, CatalogDef *out, int max);
 int kids_defs(int kind, CatalogDef *out, int max) {
   if (!tmdb_has_key()) return cinemeta(kind, out, max);
   if (kind == 2) return rows(FILMS, sizeof FILMS / sizeof FILMS[0], out, max, NULL);
@@ -116,7 +117,8 @@ int kids_defs(int kind, CatalogDef *out, int max) {
   if (max < 2) return rows(HOME, sizeof HOME / sizeof HOME[0], out, max, NULL);
   CatalogDef *s0 = &out[0]; memset(s0, 0, sizeof *s0); snprintf(s0->title, sizeof s0->title, "%s", T("Surprise me")); snprintf(s0->type, sizeof s0->type, "platform");
   snprintf(s0->url, sizeof s0->url, PFX "s/"); snprintf(s0->path, sizeof s0->path, "%s", s0->url); snprintf(s0->key, sizeof s0->key, "k_surp"); s0->round = 1;
-  return 1 + rows(HOME, sizeof HOME / sizeof HOME[0], out + 1, max - 1, NULL);
+  int f = foryou_defs(0, out + 1, max - 1); /* (what she watched: more of it, children's titles only) */
+  return 1 + f + rows(HOME, sizeof HOME / sizeof HOME[0], out + 1 + f, max - 1 - f, NULL);
 }
 int kids_disc_cats(const char *type, CatalogDef *out, int max) {
   if (!tmdb_has_key()) { CatalogDef all[8]; int n = cinemeta(0, all, 8), k = 0; for (int i = 0; i < n && k < max; i++) if (!strcmp(all[i].type, type)) out[k++] = all[i]; return k; }
@@ -221,9 +223,89 @@ static void on_page(int st, const unsigned char *body, size_t len, void *ud) { (
 /* f/: a search kept to children's titles; p/: the platforms; u/: the premieres; s/: the Surprise me badge alone */
 static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter || !strncmp(p, "p/", 2) || !strncmp(p, "u/", 2) || !strncmp(p, "s/", 2) ? p + 1 : p; }
 static void surprise_item(Item *it) { memset(it, 0, sizeof *it); snprintf(it->id, sizeof it->id, "surp:"); snprintf(it->type, sizeof it->type, "platform"); snprintf(it->name, sizeof it->name, "%s", T("Surprise me")); snprintf(it->description, sizeof it->description, "%s", T("One good title for tonight, by mood")); }
+/* ---- For you (Stremio Claude): what this profile watched (its own library: finished, half-seen, or only saved, the
+   latest first) asks TMDB for its recommendations; each title scores by how near the top it came and how recently and
+   how fully its source was watched; the best twenty, without the sources themselves. "Because you watched X": one source. */
+typedef struct { char id[24], type[16], name[128]; double at, w; } Seed;
+static double iso_ms(const char *s) { struct tm tm; memset(&tm, 0, sizeof tm); if (!s || sscanf(s, "%d-%d-%dT%d:%d:%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec) < 3) return 0; tm.tm_year -= 1900; tm.tm_mon--; return (double)timegm(&tm); }
+static int by_recent(const void *a, const void *b) { double x = ((const Seed *)a)->at, y = ((const Seed *)b)->at; return x > y ? -1 : x < y; }
+static int seeds(Seed *out, int max, int engagedOnly) {
+  cJSON *lib = store_node("lib"); const cJSON *it; int n = 0; static Seed all[400]; int na = 0;
+  if (!cJSON_IsObject(lib)) return 0;
+  cJSON_ArrayForEach(it, lib) { if (na >= 400) break; const char *id = js_str(it, "_id", it->string ? it->string : ""), *ty = js_str(it, "type", "");
+    if (strncmp(id, "tt", 2) || (strcmp(ty, "movie") && strcmp(ty, "series")) || !js_str(it, "name", "")[0]) continue;
+    const cJSON *s = js_obj(it, "state"); int done = js_num(s, "timesWatched", 0) > 0 || js_num(s, "flaggedWatched", 0) > 0, part = js_num(s, "timeOffset", 0) > 0 || js_num(s, "timeWatched", 0) > 0;
+    int removed = js_bool(it, "removed", 0) && !js_bool(it, "temp", 0); double w = done ? 1.0 : part ? 0.8 : removed ? 0 : 0.4;
+    if (w <= 0 || (engagedOnly && w < 0.8)) continue;
+    double at = iso_ms(js_str(s, "lastWatched", "")); if (at <= 0) at = iso_ms(js_str(it, "_mtime", ""));
+    Seed *d = &all[na++]; snprintf(d->id, sizeof d->id, "%s", id); snprintf(d->type, sizeof d->type, "%s", ty); snprintf(d->name, sizeof d->name, "%s", js_str(it, "name", "")); d->at = at; d->w = w; }
+  qsort(all, (size_t)na, sizeof(Seed), by_recent);
+  for (int i = 0; i < na && n < max; i++) out[n++] = all[i];
+  return n; }
+
+int foryou_defs(int kind, CatalogDef *out, int max) {
+  if (!tmdb_has_key() || max < 1) return 0; Seed s[2]; int n = 0;
+  if (seeds(s, 1, 0) < 1) return 0; /* (nothing watched yet: nothing to go by) */
+  const char *ty = kind == 2 ? "movie" : kind == 3 ? "series" : "";
+  CatalogDef *d = &out[n++]; memset(d, 0, sizeof *d); snprintf(d->title, sizeof d->title, "%s", T(kind == 2 ? "Films for you" : kind == 3 ? "Series for you" : "For you"));
+  snprintf(d->type, sizeof d->type, "%s", *ty ? ty : "movie"); snprintf(d->url, sizeof d->url, PFX "r/%s", ty); snprintf(d->path, sizeof d->path, "%s", d->url); snprintf(d->key, sizeof d->key, "fy_%d", kind);
+  if (kind == 0) { int ns = seeds(s, 2, 1); for (int i = 0; i < ns && n < max; i++) { d = &out[n++]; memset(d, 0, sizeof *d);
+      snprintf(d->title, sizeof d->title, "%s", T1("Because you watched {t}", "t", s[i].name)); snprintf(d->type, sizeof d->type, "%s", s[i].type);
+      snprintf(d->url, sizeof d->url, PFX "b/%s/%s", s[i].id, s[i].type); snprintf(d->path, sizeof d->path, "%s", d->url); snprintf(d->key, sizeof d->key, "fb_%s", s[i].id); } }
+  return n;
+}
+
+typedef struct { int id; char media[8]; double score; Item it; } Cand;
+typedef struct { void (*cb)(ItemList *, int, void *); void *ud; int max, left, kids; char want[16]; Seed s[6]; int ns, seedTmdb[6]; Cand *c; int nc, cap; } FyJob;
+typedef struct { FyJob *j; int k; } FyStep;
+static void fy_finish(FyJob *j) {
+  for (int a = 0; a < j->nc; a++) for (int b = a + 1; b < j->nc; b++) if (j->c[b].score > j->c[a].score) { Cand t = j->c[a]; j->c[a] = j->c[b]; j->c[b] = t; }
+  ItemList *l = calloc(1, sizeof *l); l->items = calloc((size_t)(j->max ? j->max : 1), sizeof(Item));
+  for (int i = 0; i < j->nc && l->n < j->max; i++) { int src = 0; for (int k = 0; k < j->ns; k++) if (j->seedTmdb[k] == j->c[i].id) src = 1; if (!src) l->items[l->n++] = j->c[i].it; }
+  l->total = l->n; fprintf(stderr, "[foryou] %d titles from %d watched\n", l->n, j->ns);
+  j->cb(l, 0, j->ud); free(j->c); free(j); }
+static void fy_done_one(FyJob *j) { if (--j->left == 0) fy_finish(j); }
+static void on_fy_recs(int st, const unsigned char *body, size_t len, void *ud) {
+  (void)len; FyStep *p = ud; FyJob *j = p->j; int k = p->k; free(p);
+  cJSON *js = st == 200 ? net_json(body) : NULL; const cJSON *res = js_arr(js, "results"), *x; int pos = 0, tv = !strcmp(j->s[k].type, "series");
+  double w = j->s[k].w / (1.0 + k * 0.25);
+  if (res) cJSON_ArrayForEach(x, res) { pos++; int id = (int)js_num(x, "id", 0); const char *nm = js_str(x, "title", js_str(x, "name", "")), *pp = js_str(x, "poster_path", ""), *bp = js_str(x, "backdrop_path", "");
+    const char *mt = js_str(x, "media_type", tv ? "tv" : "movie"); int isTv = !strcmp(mt, "tv");
+    if (id <= 0 || !*nm || !*pp || (*j->want && (isTv != !strcmp(j->want, "series")))) continue;
+    if (cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(x, "adult")) || (j->kids && !child_safe(x))) continue;
+    double sc = w * (1.0 - pos / 25.0) + js_num(x, "vote_average", 0) / 100.0; int f = -1;
+    for (int i = 0; i < j->nc && f < 0; i++) if (j->c[i].id == id && !strcmp(j->c[i].media, mt)) f = i;
+    if (f >= 0) { j->c[f].score += sc; continue; }
+    if (j->nc >= j->cap) { int nc2 = j->cap ? j->cap * 2 : 64; Cand *n2 = realloc(j->c, sizeof(Cand) * (size_t)nc2); if (!n2) continue; j->c = n2; j->cap = nc2; }
+    Cand *c = &j->c[j->nc++]; memset(c, 0, sizeof *c); c->id = id; snprintf(c->media, sizeof c->media, "%s", isTv ? "tv" : "movie"); c->score = sc;
+    Item *it = &c->it; snprintf(it->id, sizeof it->id, "tmdb:%d", id); snprintf(it->type, sizeof it->type, "%s", isTv ? "series" : "movie"); snprintf(it->name, sizeof it->name, "%s", nm);
+    snprintf(it->poster, sizeof it->poster, "https://image.tmdb.org/t/p/w342%s", pp); if (*bp) snprintf(it->background, sizeof it->background, "https://image.tmdb.org/t/p/w1280%s", bp);
+    snprintf(it->description, sizeof it->description, "%s", js_str(x, "overview", "")); }
+  net_json_free(js); fy_done_one(j);
+}
+static void on_fy_find(int st, const unsigned char *body, size_t len, void *ud) {
+  (void)len; FyStep *p = ud; FyJob *j = p->j; int k = p->k;
+  cJSON *js = st == 200 ? net_json(body) : NULL; int tv = !strcmp(j->s[k].type, "series");
+  const cJSON *arr = js_arr(js, tv ? "tv_results" : "movie_results"); const cJSON *f = arr ? cJSON_GetArrayItem(arr, 0) : NULL; int id = f ? (int)js_num(f, "id", 0) : 0; net_json_free(js);
+  if (id <= 0) { free(p); fy_done_one(j); return; }
+  j->seedTmdb[k] = id; char lang[24], reg[8], path[160]; place(lang, sizeof lang, reg, sizeof reg);
+  snprintf(path, sizeof path, "/%s/%d/recommendations?language=%s&page=1", tv ? "tv" : "movie", id, lang);
+  if (!tmdb_request(path, on_fy_recs, p)) { free(p); fy_done_one(j); }
+}
+static void foryou_fetch(const char *raw, int n, void (*cb)(ItemList *, int, void *), void *ud) {
+  FyJob *j = calloc(1, sizeof *j); j->cb = cb; j->ud = ud; j->max = n > 0 && n < 20 ? 20 : n > 0 ? n : 20; j->kids = kids_on();
+  if (!strncmp(raw, "r/", 2)) { snprintf(j->want, sizeof j->want, "%s", raw + 2); j->ns = seeds(j->s, 6, 0); }
+  else { char id[24] = "", ty[16] = ""; sscanf(raw + 2, "%23[^/]/%15s", id, ty); snprintf(j->s[0].id, sizeof j->s[0].id, "%s", id); snprintf(j->s[0].type, sizeof j->s[0].type, "%s", ty); j->s[0].w = 1; j->ns = id[0] ? 1 : 0; }
+  if (!j->ns) { fy_finish(j); return; }
+  j->left = j->ns;
+  for (int k = 0; k < j->ns; k++) { FyStep *p = malloc(sizeof *p); p->j = j; p->k = k; char path[96]; snprintf(path, sizeof path, "/find/%s?external_source=imdb_id", j->s[k].id);
+    if (!tmdb_request(path, on_fy_find, p)) { free(p); if (--j->left == 0) { fy_finish(j); return; } } }
+}
+
 void kids_fetch(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) {
   const char *raw = url + sizeof PFX - 1;
   if (!strncmp(raw, "s/", 2)) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); surprise_item(&l->items[0]); l->n = l->total = 1; cb(l, 0, ud); return; }
+  if (!strncmp(raw, "r/", 2) || !strncmp(raw, "b/", 2)) { foryou_fetch(raw, n, cb, ud); return; } /* (For you, Because you watched) */
   KReq *r = calloc(1, sizeof *r); snprintf(r->type, sizeof r->type, "%s", type); r->max = n > 0 ? n : 20; r->cb = cb; r->ud = ud;
   const char *p = tmdb_path(url, &r->filter);
   if (!tmdb_request(p, !strncmp(raw, "u/", 2) ? on_up : on_list, r)) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); l->total = -1; free(r); cb(l, 0, ud); }

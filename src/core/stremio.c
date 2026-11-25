@@ -188,8 +188,14 @@ static void cin_row(CatalogDef *d, const char *title, const char *type, const ch
   snprintf(path, sizeof path, CINEMETA "/catalog/%s/%s", type, cat); def_set(d, title, type, path, ex, top10 ? 0 : 1, key); d->top10 = top10;
 }
 /* the Films or the Series tab: today's Top 10, popular, top rated, this year's and last year's, then every genre */
+static int type_defs_base(const char *type, CatalogDef *out, int max);
 int sb_type_defs(const char *type, CatalogDef *out, int max) {
   if (kids_on()) return kids_defs(!strcmp(type, "series") ? 3 : 2, out, max); /* (Stremio Claude: a child's profile) */
+  int n = type_defs_base(type, out, max); CatalogDef fy[1]; /* (Stremio Claude: Films / Series for you, after the Top 10) */
+  if (n >= 1 && n < max && foryou_defs(!strcmp(type, "series") ? 3 : 2, fy, 1) == 1) { memmove(&out[2], &out[1], sizeof(CatalogDef) * (size_t)(n - 1)); out[1] = fy[0]; n++; }
+  return n;
+}
+static int type_defs_base(const char *type, CatalogDef *out, int max) {
   int mov = !strcmp(type, "movie"), n = 0; const char *T2 = mov ? "Movies" : "Series"; char t[96], y[8], key[24];
   const char *const *gen = mov ? TAB_MGEN : TAB_SGEN; int ng = mov ? (int)(sizeof TAB_MGEN / sizeof *TAB_MGEN) : (int)(sizeof TAB_SGEN / sizeof *TAB_SGEN);
   if (n < max) { snprintf(t, sizeof t, "Top 10 · %s today", T2); snprintf(key, sizeof key, "t%c_top10", mov ? 'm' : 's'); cin_row(&out[n++], t, type, "top", NULL, key, 1); }
@@ -232,6 +238,7 @@ int sb_anime_defs(CatalogDef *out, int max) {
 int sb_home_defs(CatalogDef *out, int max) {
   if (kids_on()) return kids_defs(0, out, max);
   int pn = max > 1 ? platforms_row(out) : 0; /* (Stremio Claude: the platforms' icons first) */
+  pn += foryou_defs(0, out + pn, max - pn - 1); /* (Stremio Claude: For you and Because you watched, from what this profile watched) */
   pn += premieres_rows(out + pn, max - pn - 1); /* (and the premieres, after Continue Watching and Live TV) */
   int n = pn + board_defs(out + pn, max - pn, 0);
   if (n == pn) {

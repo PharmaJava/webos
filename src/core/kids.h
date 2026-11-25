@@ -11,5 +11,6 @@ int  kids_search_defs(const char *q, CatalogDef *out, int max);
 void kids_feat(char *movieUrl, size_t mc, char *seriesUrl, size_t sc);  /* Discover's spotlight */
 void kids_fetch(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud);
 void kids_page(const char *url, const char *type, int skip, void (*cb)(ItemList *, int, void *), void *ud);
+int  foryou_defs(int kind, CatalogDef *out, int max);  /* For you (and Because you watched X on Home): 0 Home, 2 Films, 3 Series */
 int  kids_open(const Item *it);         /* a "tmdb:" title: its IMDb id asked, then its page; 0 for any other */
 #endif
