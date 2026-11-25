@@ -1,4 +1,4 @@
-/* Stremio Claude: what Stremio Origin 1.1.1 added to the platform, on Android TV. The pointer is the system's, live
+/* what Stremio Origin 1.1.1 added to the platform, on Android TV. The pointer is the system's, live
    broadcasts reload as any stream, and the picture is on a SurfaceView the app never reads */
 #include "platform/plat.h"
 #include "core/video.h"

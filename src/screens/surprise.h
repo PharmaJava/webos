@@ -1,4 +1,4 @@
-/* Stremio Claude: Surprise me: a mood, and one good title for it opens */
+/* Surprise me: a mood, and one good title for it opens */
 #ifndef SB_SURPRISE_H
 #define SB_SURPRISE_H
 #include "core/app.h"

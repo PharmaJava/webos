@@ -1,4 +1,4 @@
-/* Stremio Claude: Discover, put in order. With a TMDB key, films and series come first in clear categories (trending
+/* Discover, put in order. With a TMDB key, films and series come first in clear categories (trending
    today, popular, new to stream, new episodes, top rated, hidden gems), each with the genres in the app's language;
    the addons' own catalogs follow, as before. Asked of TMDB for this country, page after page as the grid scrolls. */
 #include "core/tdisc.h"

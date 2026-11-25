@@ -1,4 +1,4 @@
-/* Stremio Claude: the parent PIN. A card with four places and a number pad worked with the arrows and OK (or the pointer):
+/* the parent PIN. A card with four places and a number pad worked with the arrows and OK (or the pointer):
    it checks the PIN, or makes a new one (typed twice). The PIN guards locked profiles, a child's settings and more time
    for a child; it is kept on this TV only. */
 #include "screens/pinpad.h"

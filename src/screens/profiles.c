@@ -78,7 +78,7 @@ static void on_pick_pin(int ok, void *ud) { if (ok) pick_id((int)(intptr_t)ud); 
 static void select_tile(void) {
   int id = profiles_id(P.tile);
   if (!id) { edit_open(ADD, 0); return; }
-  if (profiles_int(id, "lock", 0) && pin_is_set() && id != profiles_active()) { pin_ask(PIN_CHECK, label(id), on_pick_pin, (void *)(intptr_t)id); return; } /* (Stremio Claude: a locked profile) */
+  if (profiles_int(id, "lock", 0) && pin_is_set() && id != profiles_active()) { pin_ask(PIN_CHECK, label(id), on_pick_pin, (void *)(intptr_t)id); return; } /* (a locked profile) */
   pick_id(id);
 }
 static void pick_id(int id) {
@@ -119,7 +119,7 @@ static int tile_count(void) {
   return count + (count < PROFILE_MAX);
 }
 
-/* (Stremio Claude) the menu's options for this profile: a child's has its limit and bedtime, the others a lock */
+/* the menu's options for this profile: a child's has its limit and bedtime, the others a lock */
 static int menu_items(int *ids) { int n = 0; ids[n++] = MENU_RENAME; ids[n++] = MENU_AVATAR; ids[n++] = MENU_KIDS;
   if (profiles_kids(P.id)) { ids[n++] = MENU_LIMIT; ids[n++] = MENU_BED; } else ids[n++] = MENU_LOCK;
   if (can_delete()) ids[n++] = MENU_DELETE; return n; }
@@ -211,7 +211,7 @@ static void focus(int tile, int unused) {
   P.tile = tile;
 }
 static void tick(float dt) {
-  if (!profiles_active() && profiles_count() == 1 && P.mode == PICK) { P.tile = 0; select_tile(); return; } /* (Stremio Claude: one viewer, nobody to ask: straight to Home, as before profiles) */
+  if (!profiles_active() && profiles_count() == 1 && P.mode == PICK) { P.tile = 0; select_tile(); return; } /* (one viewer, nobody to ask: straight to Home, as before profiles) */
   osk_tick(&P.keyboard, dt);
   timer_tick(&P.entrance, dt);
   nudge_tick(&P.edge, dt);

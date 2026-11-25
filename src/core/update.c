@@ -27,12 +27,8 @@
 #define SB_APP_ID "tv.stremioorigin.app"
 #endif
 
-#define UPD_GH "https://api.github.com/repos/PharmaJava/webos/releases?per_page=8"
-/* Stremio Claude: the package from our Homebrew site (github.io, as Stremio Origin hosts its own), not github.com: that host's
-   certificate (Sectigo ECC) is one an older Homebrew Channel or TV may not trust, and the install then never started. Every
-   release puts its package there (tools/homebrew-repo.py); the SHA-256 is still the release's own */
-#define UPD_SITE "https://pharmajava.github.io/webos/"
-#define UPD_MAN "https://pharmajava.github.io/webos/api/apps/" SB_APP_ID "/manifest.json"
+#define UPD_GH "https://api.github.com/repos/stremio-origin/webos/releases?per_page=8"
+#define UPD_MAN "https://stremio-origin.github.io/webos/api/apps/" SB_APP_ID "/manifest.json"
 typedef struct { char ver[24], url[512], sha[72]; char notes[5][256]; int nnotes; } Rel;
 static struct {
   char cur[24], appinfo[1200]; int read; Rel avail; int has, state; char msg[240]; unsigned serial;
@@ -155,7 +151,7 @@ static void on_releases(int st, const unsigned char *body, size_t len, void *ud)
       if (strncmp(dg->valuestring, "sha256:", 7) || !is_hex64(dg->valuestring + 7)) continue;
       char ver[24]; snprintf(ver, sizeof ver, "%.*s", used, n + pl);
       if (has && ver_cmp(ver, best.ver) <= 0) continue;
-      memset(&best, 0, sizeof best); has = 1; snprintf(best.ver, sizeof best.ver, "%s", ver); snprintf(best.url, sizeof best.url, UPD_SITE "%s", n); (void)du; snprintf(best.sha, sizeof best.sha, "%s", dg->valuestring + 7);
+      memset(&best, 0, sizeof best); has = 1; snprintf(best.ver, sizeof best.ver, "%s", ver); snprintf(best.url, sizeof best.url, "%s", du->valuestring); (void)n; snprintf(best.sha, sizeof best.sha, "%s", dg->valuestring + 7);
       cJSON *b = cJSON_GetObjectItemCaseSensitive(r, "body"); best.nnotes = notes_from(cJSON_IsString(b) ? b->valuestring : NULL, best.notes);
     }
   }

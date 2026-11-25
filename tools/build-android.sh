@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds Stremio Claude for Android TV (torrents included): dist/StremioClaude-AndroidTV-<version>.apk (armeabi-v7a, runs on every Android TV / Google TV).
+# Builds Stremio Origin for Android TV (torrents included): dist/StremioClaude-AndroidTV-<version>.apk (armeabi-v7a, runs on every Android TV / Google TV).
 #   tools/build-android.sh            # needs the Android SDK (ANDROID_HOME) with NDK 27.2.12479018, JDK 17+, Gradle 8.9+
 #   KEYS=$ORIGIN_BUILD/keys.env ...   # the app's own Trakt/TMDB keys, as tools/build.sh
 #   ORIGIN_KEYSTORE=... ORIGIN_KEYSTORE_PASSWORD=...   # sign with your own key (else the debug key: fine for trying it)

@@ -232,7 +232,7 @@ void cwmenu_show(const Item *it) {
     if (live_used()) { ItemList b; int in = 0; if (live_band(&b)) { for (int i = 0; i < b.n; i++) if (!strcmp(b.items[i].id, it->id)) in = 1; itemlist_clear(&b); } if (in) add(A_FORGET, "eyeOff", T("Remove from Live now")); }
     goto laid; }
   if (!strncmp(it->id, "plat:", 5)) { add(A_PLAY, "play", T("Open")); goto laid; } /* (a platform: its page) */
-  if (!strncmp(it->id, "tmdb:", 5)) { add(A_PLAY, "play", T("Play")); add(A_DETAILS, "info", T("Details")); goto laid; } /* (Stremio Claude: a TMDB title has no IMDb id yet: the library and marks wait for its page) */
+  if (!strncmp(it->id, "tmdb:", 5)) { add(A_PLAY, "play", T("Play")); add(A_DETAILS, "info", T("Details")); goto laid; } /* (a TMDB title has no IMDb id yet: the library and marks wait for its page) */
   if (it->ep) add(A_STREAMS, "play", T("Streams")); else add(A_PLAY, "play", T(it->cw ? "Resume" : "Play"));
   Uint32 tm0 = SDL_GetTicks(); CwInfo ci; if (lib_cw_info(it, &ci) && (!it->ep || !strcmp(ci.vid, it->videoId))) add(A_RESTART, "restart", T("Watch from the beginning"));
   { int inL = lib_has(it->id); add(A_LIB, inL ? "minus" : "plus", T(inL ? "Remove from Library" : "Add to Library")); } /* (among the first) */

@@ -1,4 +1,4 @@
-/* Stremio Claude: kids profiles. A profile marked for a child sees only children's films and series, in every tab:
+/* kids profiles. A profile marked for a child sees only children's films and series, in every tab:
    rows asked of TMDB (Disney+ news, the big animation studios, children's films and series), with an age limit (US
    rating G or PG for films, TMDB's Kids genre for series) and no horror, thriller, crime or war. Discover and Search
    take the same rule. Titles come as "tmdb:<id>": opening one asks TMDB for its IMDb id first, so the addons find its
@@ -181,7 +181,7 @@ static ItemList *parse(const unsigned char *body, const KReq *r, int *more) {
     if (*bp) snprintf(it->background, sizeof it->background, "https://image.tmdb.org/t/p/w1280%s", bp);
     snprintf(it->description, sizeof it->description, "%s", js_str(x, "overview", "")); if (strlen(dt) >= 4) snprintf(it->metaLine, sizeof it->metaLine, "%.4s", dt); }
   net_json_free(j); return l; }
-/* ---- the premieres (Stremio Claude): what comes out on the platforms in the next weeks, each with its day. A series' day is
+/* ---- the premieres: what comes out on the platforms in the next weeks, each with its day. A series' day is
    its first air date; a film's is its digital release in this country (asked of each film), the one streaming services use.
    The day one comes out, a notice on Home (once a day). */
 static double day_at(const char *ymd) { struct tm tm; memset(&tm, 0, sizeof tm); if (sscanf(ymd, "%d-%d-%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday) != 3) return 0; tm.tm_year -= 1900; tm.tm_mon--; tm.tm_hour = 12; tm.tm_isdst = -1; return (double)mktime(&tm); }
@@ -223,7 +223,7 @@ static void on_page(int st, const unsigned char *body, size_t len, void *ud) { (
 /* f/: a search kept to children's titles; p/: the platforms; u/: the premieres; s/: the Surprise me badge alone */
 static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter || !strncmp(p, "p/", 2) || !strncmp(p, "u/", 2) || !strncmp(p, "s/", 2) ? p + 1 : p; }
 static void surprise_item(Item *it) { memset(it, 0, sizeof *it); snprintf(it->id, sizeof it->id, "surp:"); snprintf(it->type, sizeof it->type, "platform"); snprintf(it->name, sizeof it->name, "%s", T("Surprise me")); snprintf(it->description, sizeof it->description, "%s", T("One good title for tonight, by mood")); }
-/* ---- For you (Stremio Claude): what this profile watched (its own library: finished, half-seen, or only saved, the
+/* ---- For you: what this profile watched (its own library: finished, half-seen, or only saved, the
    latest first) asks TMDB for its recommendations; each title scores by how near the top it came and how recently and
    how fully its source was watched; the best twenty, without the sources themselves. "Because you watched X": one source. */
 typedef struct { char id[24], type[16], name[128]; double at, w; } Seed;

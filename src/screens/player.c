@@ -1823,7 +1823,7 @@ static void back(void) {
   if (P.prompt.k && P.prompt.autoN) { P.prompt.autoN = 0; paint_prompt(); return; } /* a countdown running (skip, next episode): Back stops it, the controls up or not; the prompt stays */
   if (P.mode == 3) { dismiss_prompt(); return; }
   if (P.seekT >= 0) { cancel_seek(); return; }
-  close_player(0, 0); /* Stremio Claude: with the controls up too, Back goes back to the title (it used to only hide them) */
+  close_player(0, 0); /* with the controls up too, Back goes back to the title (it used to only hide them) */
 }
 static void ss_exit(void) { P.ssOn = 0; P.lastAct = now_(); }
 static void try_next(void);

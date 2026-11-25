@@ -1,4 +1,4 @@
-# Stremio Claude for Android TV: builds the APK (with the torrent engine) (armeabi-v7a, every Android TV / Google TV) and opens an x86_64 build of the
+# Stremio Origin for Android TV: builds the APK (with the torrent engine) (armeabi-v7a, every Android TV / Google TV) and opens an x86_64 build of the
 # same code on an emulator (tools/android-smoke.sh: it must draw frames, reach the network and not crash).
 # On main, or by hand, the APK goes on the release "android-tv-v<version>" (what FreeTV installs on Android TV), but only when the
 # repository has the ORIGIN_KEYSTORE secret (base64 of a keystore) and ORIGIN_KEYSTORE_PASSWORD: Android only updates an app signed
@@ -99,5 +99,5 @@ jobs:
           (cd dist && sha256sum *.apk > SHA256SUMS)
           # a version already published is never replaced: FreeTV's Android TV Store pins each APK's SHA-256 (a new file needs a new version)
           if gh release view "$tag" >/dev/null 2>&1; then echo "$tag is already published: left as it is" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
-          gh release create "$tag" dist/*.apk dist/SHA256SUMS --latest=false --title "Stremio Claude $ver for Android TV" \
-            --notes "Stremio Claude (our fixed Stremio Origin) for Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…). Code: https://github.com/PharmaJava/webos. Install the APK on the TV (Downloader, a USB drive or adb install), or from FreeTV's Store."
+          gh release create "$tag" dist/*.apk dist/SHA256SUMS --latest=false --title "Stremio Origin $ver for Android TV" \
+            --notes "Stremio Origin for Android TV and Google TV (Sony Bravia, TCL, Philips, Chromecast with Google TV…). Install the APK on the TV (Downloader, a USB drive or adb install),."

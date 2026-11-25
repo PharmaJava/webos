@@ -1,4 +1,4 @@
-/* Stremio Claude: Discover in order (TMDB's categories and genres first, the addons' catalogs after) */
+/* Discover in order (TMDB's categories and genres first, the addons' catalogs after) */
 #ifndef SB_TDISC_H
 #define SB_TDISC_H
 #include "core/stremio.h"

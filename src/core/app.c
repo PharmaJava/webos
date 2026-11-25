@@ -374,7 +374,7 @@ static void topnav_layout(void) {
   float center = 2 * NAV_GAP;
   for (int i = NAV_DISC; i < NAV_COUNT; i++) {
     int weight = chipFocused(i) || chipCur(i) ? 700 : 400;
-    topNav.chipW[i] = fminf(text_width(chipLabel(i), 32, weight, 0) + 56, 230); /* (Stremio Claude: six tabs) */
+    topNav.chipW[i] = fminf(text_width(chipLabel(i), 32, weight, 0) + 56, 230); /* (six tabs) */
     center += topNav.chipW[i];
   }
   float inset = (SB_W - center) / 2;
@@ -994,7 +994,7 @@ static void ptr_hide(void) { if (!PTR.on) return; PTR.on = 0; PTR.hasHv = 0; }
 static void ptr_put_away(void) { int was = PTR.on; ptr_hide(); if (was && !PTR.tvHid) { PTR.tvHid = 1; plat_pointer_visible(0); } } /* the TV's own pointer too, as its own apps do (the app's state alone left it on screen) */
 void app_pointer_rest(void) { if (PTR.on && !PTR.down) ptr_put_away(); } /* the film's controls faded by themselves: the pointer goes with them */
 #define PTR_IDLE 5.0 /* a hand held still this long: the pointer goes away, as on the TV's own screens */
-static void ptr_idle(void) { } /* Stremio Claude: a still hand keeps the pointer (only Back puts it away) */  /* (never while a press is held: a long press, the seek bar dragged) */
+static void ptr_idle(void) { } /* a still hand keeps the pointer (only Back puts it away) */  /* (never while a press is held: a long press, the seek bar dragged) */
 static int ptr_tremor(double now) { if (!PTR.arrowHid) return 0; if (now - PTR.arrowAt < PTR_ARROW_WIN) return 1;
   if (!PTR.anchor || now - PTR.tremAt > PTR_ARROW_PAUSE) { PTR.anchor = 1; PTR.ax = PTR.x; PTR.ay = PTR.y; } PTR.tremAt = now; float dx = PTR.x - PTR.ax, dy = PTR.y - PTR.ay; return dx * dx + dy * dy < PTR_ARROW_DIST * PTR_ARROW_DIST; }
 static void ptr_nav_back(void) {
@@ -1044,7 +1044,7 @@ void app_pointer_button(int down, float x, float y) {
 }
 /* the wheel = the Up/Down arrows (Left/Right for a sideways wheel), one per notch; it leaves the pointer out */
 void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; if (!player_open()) ptr_show(); if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(app_mirror_key(k), 1, 0); key_core(k, 0, 0); }
-void app_pointer_system(int show) { if (!show) return; if (player_open()) { ptr_hush(); return; } ptr_show(); } /* Stremio Claude: the TV says the remote moved: it comes back, after Back too; the TV's "hidden" is not followed */
+void app_pointer_system(int show) { if (!show) return; if (player_open()) { ptr_hush(); return; } ptr_show(); } /* the TV says the remote moved: it comes back, after Back too; the TV's "hidden" is not followed */
 void app_key(int k, int down, int repeat) {
   if (k == K_CURSOR_SHOW || k == K_CURSOR_HIDE) { if (down) app_pointer_system(k == K_CURSOR_SHOW); return; } /* a notice from the TV, not a key */
   if (k == K_INFO) { if (down && !repeat) { int on = strcmp(store_get("nerdStats", "false"), "true") != 0; store_set("nerdStats", on ? "true" : "false"); toast(on ? T("Stats for nerds on") : T("Stats for nerds off"), 1500, NULL); fprintf(stderr, "[app] Info: stats for nerds %s\n", on ? "on" : "off"); } return; } /* (the remote's Info key, wherever you are) */
@@ -1057,8 +1057,8 @@ void app_key(int k, int down, int repeat) {
     if (down && !repeat) { PTR.okKeyAt = 0; app_pointer_button(1, PTR.x, PTR.y); PTR.okKeyAt = NOW; PTR.okPtr = 1; }
     else if (!down) { PTR.okPtr = 0; app_pointer_button(0, PTR.x, PTR.y); }
     return; } /* (the repeats of a held OK: the press is held as the pointer's own) */
-  if (down && k == K_OK && !repeat && !player_open()) ptr_show(); /* Stremio Claude: the wheel pressed brings the pointer out (OK still does its job) */
-  if (down && k == K_BACK && !player_open()) { ptr_put_away(); PTR.arrowHid = 1; PTR.arrowAt = NOW; PTR.anchor = 0; } /* Stremio Claude: only Back puts the pointer away (not the arrows) */
+  if (down && k == K_OK && !repeat && !player_open()) ptr_show(); /* the wheel pressed brings the pointer out (OK still does its job) */
+  if (down && k == K_BACK && !player_open()) { ptr_put_away(); PTR.arrowHid = 1; PTR.arrowAt = NOW; PTR.anchor = 0; } /* only Back puts the pointer away (not the arrows) */
   key_core(k, down, repeat);
 }
 /* where the focus is, as far as can be told from outside: the screen, the open sheet, the top bar, the centre of
@@ -1157,7 +1157,7 @@ static void open_request_tick(void) {
 void app_tick(float dt) {
   DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++; away_tick();
   open_request_tick();
-  { extern void video_ss_tick(void); video_ss_tick(); } { extern void kids_tick(float); kids_tick(dt); } /* (Stremio Claude: the TV's screen saver answered from the start, menus too) */
+  { extern void video_ss_tick(void); video_ss_tick(); } { extern void kids_tick(float); kids_tick(dt); } /* (the TV's screen saver answered from the start, menus too) */
   ptr_idle();
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */

@@ -4,7 +4,7 @@ cd "$(dirname "$0")/../.."
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 cc -ffunction-sections -fdata-sections -Wl,--gc-sections -std=c11 -D_GNU_SOURCE -I src -I third_party/cjson \
-  tests/profiles/test.c src/core/profiles.c src/core/store.c src/core/stremio.c src/core/notify.c third_party/cjson/cJSON.c \
+  tests/profiles/test.c tests/profiles/stubs.c src/core/profiles.c src/core/store.c src/core/stremio.c src/core/notify.c third_party/cjson/cJSON.c \
   -lSDL2 -lpthread -lm -o "$scratch/test"
 for phase in setup reload default secondary cleanup; do
   "$scratch/test" "$scratch" "$phase"

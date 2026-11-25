@@ -1,4 +1,4 @@
-/* Stremio Claude: the parent PIN (four digits, on this TV): checked, or made (typed twice) */
+/* the parent PIN (four digits, on this TV): checked, or made (typed twice) */
 #ifndef SB_PINPAD_H
 #define SB_PINPAD_H
 #include "core/app.h"

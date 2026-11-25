@@ -175,7 +175,7 @@ static int board_defs(CatalogDef *out, int max, int from) {
     ai++; }
   return n;
 }
-/* ---- Stremio Claude: the Films, Series and Anime tabs ---- */
+/* ---- the Films, Series and Anime tabs ---- */
 /* rows made from Cinemeta's own catalogs ("top" is what is watched now and changes every day, "imdbRating", "year"),
    asked with a genre or a year */
 static const char *const TAB_MGEN[] = { "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror",
@@ -190,8 +190,8 @@ static void cin_row(CatalogDef *d, const char *title, const char *type, const ch
 /* the Films or the Series tab: today's Top 10, popular, top rated, this year's and last year's, then every genre */
 static int type_defs_base(const char *type, CatalogDef *out, int max);
 int sb_type_defs(const char *type, CatalogDef *out, int max) {
-  if (kids_on()) return kids_defs(!strcmp(type, "series") ? 3 : 2, out, max); /* (Stremio Claude: a child's profile) */
-  int n = type_defs_base(type, out, max); CatalogDef fy[1]; /* (Stremio Claude: Films / Series for you, after the Top 10) */
+  if (kids_on()) return kids_defs(!strcmp(type, "series") ? 3 : 2, out, max); /* (a child's profile) */
+  int n = type_defs_base(type, out, max); CatalogDef fy[1]; /* (Films / Series for you, after the Top 10) */
   if (n >= 1 && n < max && foryou_defs(!strcmp(type, "series") ? 3 : 2, fy, 1) == 1) { memmove(&out[2], &out[1], sizeof(CatalogDef) * (size_t)(n - 1)); out[1] = fy[0]; n++; }
   return n;
 }
@@ -237,8 +237,8 @@ int sb_anime_defs(CatalogDef *out, int max) {
 /* Home: every installed catalog, in the addons' order (it showed the first 8 and dropped the rest) */
 int sb_home_defs(CatalogDef *out, int max) {
   if (kids_on()) return kids_defs(0, out, max);
-  int pn = max > 1 ? platforms_row(out) : 0; /* (Stremio Claude: the platforms' icons first) */
-  pn += foryou_defs(0, out + pn, max - pn - 1); /* (Stremio Claude: For you and Because you watched, from what this profile watched) */
+  int pn = max > 1 ? platforms_row(out) : 0; /* (the platforms' icons first) */
+  pn += foryou_defs(0, out + pn, max - pn - 1); /* (For you and Because you watched, from what this profile watched) */
   pn += premieres_rows(out + pn, max - pn - 1); /* (and the premieres, after Continue Watching and Live TV) */
   int n = pn + board_defs(out + pn, max - pn, 0);
   if (n == pn) {
@@ -258,7 +258,7 @@ static int disc_cat_ok(const cJSON *cat, char *ex, size_t cap) { const char *t =
 static int disc_types_addons(char (*out)[16], int max);
 int sb_disc_types(char (*out)[16], int max) {
   if (kids_on() || tdisc_on()) { int n = 0; if (n < max) snprintf(out[n++], 16, "movie"); if (n < max) snprintf(out[n++], 16, "series");
-    if (kids_on()) return n; char t[16][16]; int m = disc_types_addons(t, 16); /* (Stremio Claude: TMDB's films and series first, the addons' other types after) */
+    if (kids_on()) return n; char t[16][16]; int m = disc_types_addons(t, 16); /* (TMDB's films and series first, the addons' other types after) */
     for (int i = 0; i < m && n < max; i++) if (strcmp(t[i], "movie") && strcmp(t[i], "series")) snprintf(out[n++], 16, "%s", t[i]);
     return n; }
   return disc_types_addons(out, max);
@@ -276,7 +276,7 @@ static int disc_cats_addons(const char *type, CatalogDef *out, char (*addon)[64]
 int sb_disc_cats(const char *type, CatalogDef *out, char (*addon)[64], int max) {
   if (kids_on()) { int n = kids_disc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) addon[i][0] = 0; return n; }
   if (!tdisc_on() || (strcmp(type, "movie") && strcmp(type, "series"))) return disc_cats_addons(type, out, addon, max);
-  int n = tdisc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) addon[i][0] = 0; /* (Stremio Claude: Discover in order) */
+  int n = tdisc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) addon[i][0] = 0; /* (Discover in order) */
   int m = disc_cats_addons(type, out + n, addon ? addon + n : NULL, max - n);
   if (m == 1 && (!strcmp(out[n].key, "dcm") || !strcmp(out[n].key, "dcs"))) m = 0; /* (no addon catalog: no stand-in "Popular" twice) */
   return n + m;
@@ -471,7 +471,7 @@ static void *cat_cached_run(void *a) { plat_thread_background(5); CatJob *k = a;
     k->age = age > 0 && cache_file(r->key, age, cp, sizeof cp) && !r->force; }
   net_file("", on_cat_cached, k); return NULL; }
 void sb_catalog_url(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) {
-  if (kids_url(url)) { kids_fetch(url, type, n, cb, ud); return; } /* (Stremio Claude: a child's rows, from TMDB) */
+  if (kids_url(url)) { kids_fetch(url, type, n, cb, ud); return; } /* (a child's rows, from TMDB) */
   CatReq *r = calloc(1, sizeof *r); copy_str(r->url, sizeof r->url, url); copy_str(r->type, sizeof r->type, type); snprintf(r->key, sizeof r->key, "cat:%s", url); r->n = n; r->cb = cb; r->ud = ud;
   if (n > CAT_BIG) { CatJob *k = calloc(1, sizeof *k); k->r = r; pthread_t t; if (pthread_create(&t, NULL, cat_cached_run, k) == 0) { pthread_detach(t); return; } free(k); } /* (a big list: its kept copy read on its own thread) */
   size_t cl; unsigned char *t = cache_read(r->key, 0, &cl);

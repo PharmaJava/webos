@@ -40,7 +40,7 @@
 #define RW_W 500.0f
 #define RW_H 281.0f
 #define RGAP 28.0f
-#define RANK_W 150.0f /* (Stremio Claude) a Top 10 row: the room of each number */
+#define RANK_W 150.0f /* a Top 10 row: the room of each number */
 #define GC_W 200.0f          /* Discover's grid: smaller than a row's posters (180 x 270 until 2026-11-08: a touch bigger, the user; still 8 a line) */
 #define GC_H 300.0f
 #define FILT_H 104.0f        /* Discover's filter strip (it stays put above the grid) */
@@ -78,7 +78,7 @@ typedef struct {
   unsigned heroVer, inVer, viewVer; const void *inL, *inLn, *inLo, *inLl; char inLogo[512]; int inSt, inWait; HeroLay lay;
 } Board;
 enum { HP_IDLE, HP_GATHER, HP_LATER_WAIT, HP_LATER_OUT };
-static Board boards[6]; /* 0 Home, 1 Discover; Stremio Claude: 2 Films, 3 Series, 4 Anime, 5 a platform's page */
+static Board boards[6]; /* 0 Home, 1 Discover; 2 Films, 3 Series, 4 Anime, 5 a platform's page */
 static Board *cur(void) { return SCR == SCR_HOME ? &boards[0] : SCR == SCR_DISC ? &boards[1] : SCR == SCR_MOVIES ? &boards[2] : SCR == SCR_SERIES ? &boards[3] : SCR == SCR_ANIME ? &boards[4] : SCR == SCR_PLATFORM ? &boards[5] : NULL; }
 static int spotOn(Board *b) { return b->kind == 1 && b->featOn; }
 static int filtOn(Board *b) { return b->kind == 1 && !b->featOn && b->rowIdx >= 0 && b->rowIdx < b->n && b->rows[b->rowIdx].filt; } /* the filter strip has the focus */
@@ -123,7 +123,7 @@ static void on_catalog(ItemList *l, int cached, void *ud) {
   { Row *r0 = &b->rows[row]; if (!got && l->total < 0 && r0->hasDef && r0->retries < 3) { static const double W[3] = { 8, 20, 45 }; r0->retryAt = app_now() + W[r0->retries]; r0->retries++; itemlist_free(l); /* no answer (an addon still making the list, busy, a blip): asked again in 8, 20 and 45 s before the row is left out */
       fprintf(stderr, "[home] %s: no answer, asked again in %.0f s\n", r0->title, W[r0->retries - 1]); return; } }
   Row *r = &b->rows[row]; row_clear(r); r->items = *l; free(l); r->locAt = 0;
-  r->skipAt = got; r->skipAlt = r->items.total > got ? r->items.total : 0; r->more = r->hasDef && r->def.skip && r->items.n > 0; r->paging = 0; if (r->def.top10) { if (r->items.n > 10) r->items.n = 10; r->more = 0; } /* (Stremio Claude: a Top 10, the first ten and nothing more) */ /* the next page from where the row stopped (16 kept of 100: asked from 100, titles 17-100 never showed), from the page's end if the addon only pages by its size */
+  r->skipAt = got; r->skipAlt = r->items.total > got ? r->items.total : 0; r->more = r->hasDef && r->def.skip && r->items.n > 0; r->paging = 0; if (r->def.top10) { if (r->items.n > 10) r->items.n = 10; r->more = 0; } /* (a Top 10, the first ten and nothing more) */ /* the next page from where the row stopped (16 kept of 100: asked from 100, titles 17-100 never showed), from the page's end if the addon only pages by its size */
   r->hidden = r->items.n == 0; if (r->col >= r->items.n) r->col = r->items.n ? r->items.n - 1 : 0;
   if (cur() == b) { slide_row(r); b->heroPending = b->heroPending || (b->rowIdx == row); if (b->rowIdx == row && !b->heroPending) { b->heroAt = app_now(); b->heroPending = 1; } }
 }
@@ -280,8 +280,8 @@ static void load_catalog_rows(Board *b, int disc, int keep) {
   for (int i = 0; i < b->n; i++) row_clear(&b->rows[i]); b->n = 0; b->gen++;
   static CatalogDef defs[MAXROWS]; int nd = disc ? 0 : b->kind == 2 ? sb_type_defs("movie", defs, MAXROWS - 1) : b->kind == 3 ? sb_type_defs("series", defs, MAXROWS - 1) : b->kind == 4 ? sb_anime_defs(defs, MAXROWS - 1) : b->kind == 5 ? platform_defs(defs, MAXROWS - 1) : sb_home_defs(defs, MAXROWS - 1); /* (Discover: its listing, below) */
   int band = !disc && live_catalogs() > 0; /* the live row holds live: its catalogs are in the hub (All channels) */
-  int first = 0; if (b->kind == 0 && nd && defs[0].round) { first = 1; def_row(b, &defs[0], kp, nk); } /* (Stremio Claude: the platforms first, then Continue Watching, Live TV and the rest) */
-  if (b->kind == 0) board_cw_row(b, kp, nk); /* (Stremio Claude: Continue Watching, Upcoming and Live TV on Home only, not on Films, Series or Anime) */
+  int first = 0; if (b->kind == 0 && nd && defs[0].round) { first = 1; def_row(b, &defs[0], kp, nk); } /* (the platforms first, then Continue Watching, Live TV and the rest) */
+  if (b->kind == 0) board_cw_row(b, kp, nk); /* (Continue Watching, Upcoming and Live TV on Home only, not on Films, Series or Anime) */
   if (disc) { Row *f = row_add(b, "", 0, 0); if (f) { f->filt = 1; f->hidden = 0; } } /* Discover: the filter strip under the spotlight's dots */
   if (disc) { DS.gen++; itemlist_clear(&DS.all); for (int i = 0; i < DMEM; i++) { itemlist_clear(&DS.part[i]); DS.used[i] = DS.has[i] = DS.mMore[i] = DS.mSkip[i] = DS.mWait[i] = 0; } DS.more = DS.paging = 0; DS.skipAt = 0; DS.pageAt = 0; DS.askAt = 0;
     if (disc_catalog()) { DS.askAt = app_now(); for (int i = 0; i < DS.nm; i++) sb_catalog_url(DS.m[i].url, DS.m[i].type, 100, on_disc, DUD(i)); fprintf(stderr, "[disc] %s %s (%d catalog%s)%s%s\n", FL.type, DS.m[0].title, DS.nm, DS.nm == 1 ? "" : "s", FL.genre[0] ? " · " : "", FL.genre); } } /* (one row kept for Continue Watching, or the strip) */
@@ -920,8 +920,8 @@ static float move_x(Row *r, int i, float x, float step, float *fa) {
   if (fa) *fa = 1; if (r->moveAt <= 0) return x; float t = (float)((app_now() - r->moveAt) / 0.5); if (t >= 1) { r->moveAt = 0; return x; }
   float k = t < 0.5f ? 4 * t * t * t : 1 - (-2 * t + 2) * (-2 * t + 2) * (-2 * t + 2) / 2; int o = i < 48 ? r->oldIdx[i] : -1;
   if (o < 0) { if (fa) *fa = k; return x; } float ox = row_x0(r) + o * step - r->moveOff; if (app_rtl()) ox = SB_W - ox - card_w(r); return ox + (x - ox) * k; }
-/* Stremio Claude: a Top 10's rank on its card, a big white figure on the lower left with a soft dark edge so it reads on any poster */
-/* Top 10 (Stremio Claude), as Netflix shows it: the rank as a huge number beside the poster, as tall as the card,
+/* a Top 10's rank on its card, a big white figure on the lower left with a soft dark edge so it reads on any poster */
+/* Top 10, as Netflix shows it: the rank as a huge number beside the poster, as tall as the card,
    dark with a grey outline, narrowed so two digits fit; the poster comes over its edge. Drawn before the card. */
 static void rank_draw(int n, float x, float cy, float cw, float ch) {
   char t[4]; snprintf(t, sizeof t, "%d", n); int px = (int)(ch * 1.1f), rtl = app_rtl();
@@ -995,7 +995,7 @@ static void platform_badge(void) {
 static void board_draw(void) {
   Board *b = cur(); if (!b) return;
   hero_draw(b);
-  if (b->kind == 5) platform_badge(); /* (Stremio Claude: whose page this is) */
+  if (b->kind == 5) platform_badge(); /* (whose page this is) */
   int disc = b->kind == 1; float sy = disc ? b->spotY.v : 0, ra0 = disc ? b->rowsA.v : 1, clipTop = disc ? ROWS_TOP + sy + FILT_H - 8 : ROWS_TOP; /* (Discover: the grid scrolls under its strip, which stays put) */
   gfx_clip_push(0, clipTop, SB_W, SB_H - clipTop);
   gfx_offset_push(0, b->hostY.v + sy);
@@ -1038,7 +1038,7 @@ static int board_warm(Board *b) {
   const Item *it = focused_of(b); if (!it) return 0;
   if (b->kind == 1 && spotOn(b) && !b->nfeat) return 0; /* the spotlight's titles first */
   int sp = spotOn(b), row = sp ? FEAT_ROW : b->rowIdx, col = sp ? b->featIdx % b->nfeat : b->rows[b->rowIdx].col;
-  int nometa = !strcmp(it->type, "platform") || !strncmp(it->id, "tmdb:", 5); /* (Stremio Claude: a platform, Surprise me or a TMDB title: no Cinemeta page to wait for) */
+  int nometa = !strcmp(it->type, "platform") || !strncmp(it->id, "tmdb:", 5); /* (a platform, Surprise me or a TMDB title: no Cinemeta page to wait for) */
   if (!nometa && !sb_meta_cached(it->type, it->id)) meta_ask(b, row, col);
   int loc = !tmdb_wanted(it->id) || tmdb_loc(it->type, it->id, 1) != NULL; /* (asks for it) */
   char u[512]; int pics = 1, cards = 1;

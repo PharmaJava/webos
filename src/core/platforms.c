@@ -1,4 +1,4 @@
-/* Stremio Claude: the streaming platforms. A row of round badges on Home (each platform's own icon, as TMDB lists the
+/* the streaming platforms. A row of round badges on Home (each platform's own icon, as TMDB lists the
    ones of this country) and a page for each, as if the platform's own app were open: its Top 10 films and series of
    the moment, what is new, the best rated and its genres, every list asked of TMDB for that platform in this country.
    The titles open as any other (their IMDb id first), and the addons play them. */

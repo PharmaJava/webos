@@ -1,4 +1,4 @@
-/* Stremio Claude: the streaming platforms (Netflix, Disney+, Max, Prime Video...): their icons in a row on Home, and a
+/* the streaming platforms (Netflix, Disney+, Max, Prime Video...): their icons in a row on Home, and a
    page for each with its own Top 10, news, best rated and genres, all asked of TMDB for this country. */
 #ifndef SB_PLATFORMS_H
 #define SB_PLATFORMS_H

@@ -1,4 +1,4 @@
-/* Stremio Claude: a child's time. A child's profile can have a daily limit and a bedtime: the time with the app in front
+/* a child's time. A child's profile can have a daily limit and a bedtime: the time with the app in front
    is counted each day (on this TV), five minutes before the end a notice says so, and at the end the film stops and a card
    says the TV is over for today. From there: another profile (a locked one asks the parent PIN), or half an hour more
    with the parent PIN. Bedtime runs until six in the morning. */

@@ -1,4 +1,4 @@
-/* Stremio Claude: kids profiles. A profile marked for a child sees only children's titles in every tab, Discover and
+/* kids profiles. A profile marked for a child sees only children's titles in every tab, Discover and
    Search (TMDB's lists with an age limit; Cinemeta's family and animation ones without a TMDB key). */
 #ifndef SB_KIDS_H
 #define SB_KIDS_H

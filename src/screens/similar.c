@@ -100,7 +100,7 @@ static void on_meta(cJSON *m, void *ud) {
   char u[512], ge[128] = ""; if (*g) { const char *s = g; char *d = ge; while (*s && d < ge + 120) { if ((*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') || (*s >= '0' && *s <= '9') || *s == '-') *d++ = *s; else { snprintf(d, 4, "%%%02X", (unsigned char)*s); d += 3; } s++; } *d = 0; }
   if (ge[0]) snprintf(u, sizeof u, CINEMETA "/catalog/%s/top/genre=%s.json", G.p.it.type, ge); else snprintf(u, sizeof u, CINEMETA "/catalog/%s/top.json", G.p.it.type);
   snprintf(G.fbUrl, sizeof G.fbUrl, "%s", u);
-  /* Stremio Claude (from Stremio Origin PR #80): TMDB's recommendations for this title when there is a key; Cinemeta's genre when not */
+  /* Stremio Origin (from Stremio Origin PR #80): TMDB's recommendations for this title when there is a key; Cinemeta's genre when not */
   const char *id = G.p.it.id; int tt = !strncmp(id, "tt", 2);
   for (const char *q = id + 2; tt && *q; q++) if (*q < '0' || *q > '9') tt = 0;
   if (tt && tmdb_has_key()) { char path[96]; snprintf(path, sizeof path, "/find/%s?external_source=imdb_id", id); if (tmdb_request(path, on_tmdb_find, (void *)(uintptr_t)G.gen)) return; }

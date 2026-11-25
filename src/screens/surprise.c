@@ -1,4 +1,4 @@
-/* Stremio Claude: Surprise me. A card asks for a mood (and film, series or either); one well-rated title for it is picked
+/* Surprise me. A card asks for a mood (and film, series or either); one well-rated title for it is picked
    from TMDB at random, one already watched passed over, and its page opens. A child's profile picks among children's titles. */
 #include "screens/surprise.h"
 #include "core/app.h"

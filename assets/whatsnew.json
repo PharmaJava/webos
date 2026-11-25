@@ -1,66 +1,14 @@
 {
- "version": "1.5.0",
+ "version": "1.1.0",
  "items": [
-  {
-   "icon": "wn_best",
-   "title": "Stremio Origin 1.1.1 inside",
-   "text": "Live TV, chapters and skips, seek previews, film collections, Trakt and every other improvement of the original app."
-  },
-  {
-   "icon": "wn_best",
-   "title": "Films and Series tabs, and a Top 10",
-   "text": "Each with its categories: today's Top 10, popular, top rated, this year's, last year's and every genre."
-  },
-  {
-   "icon": "wn_new",
-   "title": "An Anime tab",
-   "text": "The anime catalogs of your addons, on a tab of their own."
-  },
-  {
-   "icon": "wn_new",
-   "title": "Opened from FreeTV",
-   "text": "A film or series picked on FreeTV's home opens here, on its own page."
-  },
-  {
-   "icon": "wn_new",
-   "title": "The pointer when you want it",
-   "text": "Move the remote, turn or press the wheel and it comes out. It stays until you press Back."
-  },
-  {
-   "icon": "wn_av",
-   "title": "Seek previews",
-   "text": "A picture of the film on the seek bar, for debrid and direct links."
-  },
-  {
-   "icon": "wn_subs",
-   "title": "Subtitles your way",
-   "text": "Font, size, colour, background, brightness and position, changed while you watch."
-  },
-  {
-   "icon": "wn_opts",
-   "title": "Tracks per show",
-   "text": "The subtitles and audio you pick stay for the whole show."
-  },
-  {
-   "icon": "wn_new",
-   "title": "Chapters and skips",
-   "text": "Chapters on the seek bar, and Skip intro and recap by itself or on OK."
-  },
-  {
-   "icon": "wn_live",
-   "title": "Live TV",
-   "text": "Channels and sports from your live addons, with Favorites and Recent."
-  },
-  {
-   "icon": "collection",
-   "title": "Film collections",
-   "text": "On the title page and in the Library, and the next film after the credits."
-  },
-  {
-   "icon": "wn_lib",
-   "title": "28 languages",
-   "text": "Greek, Brazilian Portuguese, Romanian and Hungarian among them."
-  },
+  {"icon": "wn_av", "title": "Seek previews", "text": "A picture of the film on the seek bar, for debrid and direct links."},
+  {"icon": "wn_subs", "title": "Subtitles your way", "text": "Font, size, colour, background, brightness and position, changed while you watch."},
+  {"icon": "wn_opts", "title": "Tracks per show", "text": "The subtitles and audio you pick stay for the whole show."},
+  {"icon": "wn_new", "title": "Chapters and skips", "text": "Chapters on the seek bar, and Skip intro and recap by itself or on OK."},
+  {"icon": "wn_live", "title": "Live TV", "text": "Channels and sports from your live addons, with Favorites and Recent."},
+  {"icon": "collection", "title": "Film collections", "text": "On the title page and in the Library, and the next film after the credits."},
+  {"icon": "wn_lib", "title": "28 languages", "text": "Greek, Brazilian Portuguese, Romanian and Hungarian among them."},
   "And much more."
- ]
+ ],
+ "support": {"title": "Thank you", "message": "Thank you!", "url": "https://ko-fi.com/simussu", "github": "https://github.com/stremio-origin/webos"}
 }
