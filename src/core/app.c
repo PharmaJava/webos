@@ -102,7 +102,7 @@ static int rtlHeld; /* a picture drawn left to right and mirrored as a whole (th
 int app_rtl(void) { return rtlHeld ? 0 : i18n_rtl(); }
 void app_rtl_hold(int on) { rtlHeld = on; }
 int app_mirror_key(int k) { if (!i18n_rtl()) return k; return k == K_LEFT ? K_RIGHT : k == K_RIGHT ? K_LEFT : k; }
-int app_is_board(Scr s) { return s == SCR_HOME || s == SCR_DISC || s == SCR_LIB || s == SCR_MOVIES || s == SCR_SERIES || s == SCR_ANIME; }
+int app_is_board(Scr s) { return s == SCR_HOME || s == SCR_DISC || s == SCR_LIB || s == SCR_MOVIES || s == SCR_SERIES || s == SCR_ANIME || s == SCR_PLATFORM; }
 static int xinLib; /* the Library's entrance runs 0.42 s on the page's main curve; the others 0.3 s ease-out */
 float app_screen_alpha(void) { return xin.on ? ease_apply(EASE_CSS_EASEOUT, timer_x(&xin)) : 1; } /* an even ease-out: the front-loaded curves read as a pop */
 static int scr_origin(float *x, float *y) { if (screens[SCR] && screens[SCR]->origin && screens[SCR]->origin(x, y)) return 1; *x = SB_W / 2; *y = SB_H / 2; return 0; }
@@ -439,7 +439,7 @@ static void topnav_flush(int drop) { if (topNav.want < 0) return; int w = topNav
 static void topnav_enter_content(void) {
   topNav.active = 0; Scr t = chipScr(topNav.idx);
   extern void board_from_bar(void), lib_from_bar(void);
-  if (SCR == SCR_HOME || SCR == SCR_DISC || SCR == SCR_MOVIES || SCR == SCR_SERIES || SCR == SCR_ANIME) board_from_bar();   /* a board: its first row (Discover: its spotlight) */
+  if (SCR == SCR_HOME || SCR == SCR_DISC || SCR == SCR_MOVIES || SCR == SCR_SERIES || SCR == SCR_ANIME || SCR == SCR_PLATFORM) board_from_bar();   /* a board: its first row (Discover: its spotlight) */
   else if (SCR == SCR_LIB) lib_from_bar();                    /* the Library: its categories */
   else if (t != SCR_SEARCH && t != SCR_SET && screens[SCR] && screens[SCR]->key) screens[SCR]->key(K_DOWN); /* Search and Settings keep their own top highlight */
   topnav_paint();

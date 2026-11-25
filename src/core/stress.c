@@ -36,7 +36,7 @@ static const Step LOOP[] = {
   /* the player (with SB_STRESS_PLAY): open, the controls, trays, seeking, away */
   { A_PLAY, 0, 0, 0, 4000 }, K(K_DOWN, 1, 0, 600), K(K_RIGHT, 6, 300, 500), K(K_OK, 1, 0, 800), K(K_DOWN, 2, 300, 300), K(K_BACK, 1, 0, 500), K(K_UP, 1, 0, 300), K(K_RIGHT, 8, 120, 1600), K(K_LEFT, 4, 120, 1600), HOME,
 };
-static const char *NAMES[] = { "sign-in", "home", "discover", "library", "title", "similar", "search", "settings", "profiles", "movies", "series", "anime", "player", "menu" };
+static const char *NAMES[] = { "sign-in", "home", "discover", "library", "title", "similar", "search", "settings", "profiles", "movies", "series", "anime", "platform", "player", "menu" };
 #define NSTEP ((int)(sizeof LOOP / sizeof *LOOP))
 static int loops, loop, step, done, on, sent; static Uint32 nextAt; static int keyDown;
 

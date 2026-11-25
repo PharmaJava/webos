@@ -6,6 +6,7 @@
 #include "core/scrobble.h"
 #include "core/traktrows.h"
 #include "core/kids.h"
+#include "core/platforms.h"
 #include "core/traktwatch.h"
 #include "core/forcedsubs.h"
 #include "core/net.h"
@@ -229,8 +230,9 @@ int sb_anime_defs(CatalogDef *out, int max) {
 /* Home: every installed catalog, in the addons' order (it showed the first 8 and dropped the rest) */
 int sb_home_defs(CatalogDef *out, int max) {
   if (kids_on()) return kids_defs(0, out, max);
-  int n = board_defs(out, max, 0);
-  if (!n) {
+  int pn = max > 1 ? platforms_row(out) : 0; /* (Stremio Claude: the platforms' icons first) */
+  int n = pn + board_defs(out + pn, max - pn, 0);
+  if (n == pn) {
     const char *defs[4][4] = { { "Popular · Movies", "movie", CINEMETA "/catalog/movie/top", "cin_m_top" }, { "Popular · Series", "series", CINEMETA "/catalog/series/top", "cin_s_top" },
       { "Top Rated · Movies", "movie", CINEMETA "/catalog/movie/imdbRating", "cin_m_ir" }, { "Top Rated · Series", "series", CINEMETA "/catalog/series/imdbRating", "cin_s_ir" } };
     for (int i = 0; i < 4 && n < max; i++) def_set(&out[n++], defs[i][0], defs[i][1], defs[i][2], NULL, 1, defs[i][3]);

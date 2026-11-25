@@ -138,7 +138,29 @@ static int child_safe(const cJSON *r) {
   return ok; }
 
 typedef struct { char type[16]; int filter, max; void (*cb)(ItemList *, int, void *); void (*pcb)(ItemList *, int, void *); void *ud; } KReq;
+
+/* the platforms of this country (TMDB's watch providers): the best known first, in this order, then the country's own most
+   watched ones (never an add-on channel of another one, nor an "with ads" twin), fourteen at most */
+static const int FAMOUS[] = { 8, 337, 1899, 119, 350, 149, 1773, 531, 63, 283, 35, 11, 300, 15, 386 };
+static int channel_twin(const char *nm) { return strstr(nm, "Channel") || strstr(nm, "with Ads") || strstr(nm, "Standard with") || strstr(nm, "Basic with") || strstr(nm, "Store") || strstr(nm, "Play Movies") || !strcmp(nm, "Amazon Video"); } /* (rental shops: nothing to watch with a subscription) */
+static ItemList *parse_providers(cJSON *j) {
+  const cJSON *res = js_arr(j, "results"), *x; ItemList *l = calloc(1, sizeof *l); l->items = calloc(16, sizeof(Item)); l->total = j ? 0 : -1;
+  if (!res) return l; char reg[8], lang[24]; place(lang, sizeof lang, reg, sizeof reg);
+  for (int pass = 0; pass < 2; pass++) for (size_t f = 0; f < (pass ? 999 : sizeof FAMOUS / sizeof FAMOUS[0]) && l->n < 14; f++) {
+    const cJSON *pick = NULL; int best = 1 << 30;
+    cJSON_ArrayForEach(x, res) { int id = (int)js_num(x, "provider_id", 0); const char *nm = js_str(x, "provider_name", ""), *lp = js_str(x, "logo_path", ""); if (!id || !*nm || !*lp) continue;
+      int have = 0; for (int i = 0; i < l->n && !have; i++) have = atoi(l->items[i].id + 5) == id; if (have) continue;
+      if (!pass) { if (id == FAMOUS[f]) { pick = x; break; } continue; }
+      if (channel_twin(nm)) continue; int pr = (int)js_num(js_obj(x, "display_priorities"), reg, js_num(x, "display_priority", 999)); if (pr < best) { best = pr; pick = x; } }
+    if (!pick) { if (pass) break; continue; }
+    if (pass && best > 25) break;
+    Item *it = &l->items[l->n++]; snprintf(it->id, sizeof it->id, "plat:%d", (int)js_num(pick, "provider_id", 0)); snprintf(it->type, sizeof it->type, "platform");
+    snprintf(it->name, sizeof it->name, "%s", js_str(pick, "provider_name", "")); snprintf(it->logo, sizeof it->logo, "https://image.tmdb.org/t/p/w300%s", js_str(pick, "logo_path", ""));
+    snprintf(it->poster, sizeof it->poster, "%s", it->logo); snprintf(it->description, sizeof it->description, "%s", T1("Films and series on {p}", "p", it->name)); }
+  l->total = l->n; return l; }
+
 static ItemList *parse(const unsigned char *body, const KReq *r, int *more) {
+  if (!strcmp(r->type, "platform")) { cJSON *pj = body ? net_json(body) : NULL; ItemList *pl = parse_providers(pj); net_json_free(pj); if (more) *more = 0; return pl; }
   cJSON *j = body ? net_json(body) : NULL; const cJSON *res = js_arr(j, "results"), *x; ItemList *l = calloc(1, sizeof *l);
   int n = res ? cJSON_GetArraySize(res) : 0; l->items = calloc(n ? (size_t)n : 1, sizeof(Item)); l->total = j ? n : -1;
   if (more) { int pg = (int)js_num(j, "page", 1), tp = (int)js_num(j, "total_pages", 1); *more = pg < tp && pg < 25; }
@@ -154,7 +176,7 @@ static ItemList *parse(const unsigned char *body, const KReq *r, int *more) {
 static void on_list(int st, const unsigned char *body, size_t len, void *ud) { (void)len; KReq *r = ud; ItemList *l = parse(st == 200 ? body : NULL, r, NULL); r->cb(l, 0, r->ud); free(r); }
 static void on_page(int st, const unsigned char *body, size_t len, void *ud) { (void)len; KReq *r = ud; int more = 0; ItemList *l = st == 200 ? parse(body, r, &more) : NULL; r->pcb(l, more, r->ud); free(r); }
 
-static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter ? p + 1 : p; }
+static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter || !strncmp(p, "p/", 2) ? p + 1 : p; } /* f/: a search kept to children's titles; p/: the platforms */
 void kids_fetch(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) {
   KReq *r = calloc(1, sizeof *r); snprintf(r->type, sizeof r->type, "%s", type); r->max = n > 0 ? n : 20; r->cb = cb; r->ud = ud;
   const char *p = tmdb_path(url, &r->filter);
@@ -176,6 +198,7 @@ static void on_ext(int st, const unsigned char *body, size_t len, void *ud) {
   net_json_free(j); free(it);
 }
 int kids_open(const Item *it) {
+  { extern int platform_open(const Item *it); if (platform_open(it)) return 1; } /* (a platform: its page) */
   if (strncmp(it->id, "tmdb:", 5)) return 0;
   Item *c = malloc(sizeof *c); if (!c) return 1; *c = *it; c->ep = (int)++openGen; /* (ep carries which press this is: only the last one opens) */
   char path[64]; snprintf(path, sizeof path, "/%s/%d/external_ids", !strcmp(it->type, "series") ? "tv" : "movie", atoi(it->id + 5));

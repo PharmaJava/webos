@@ -23,7 +23,7 @@ typedef struct { Item *items; int n; int total; /* total: the metas in the answe
 
 /* url: the first page as asked (also the cache's name); path: the address before the extra part, extra: what the
    first page is asked with (a required property's first option, or none), skip: the catalog takes "skip" (pages) */
-typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip, top10; } CatalogDef;   /* top10 (Stremio Claude): the first ten, with their ranks */
+typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip, top10, round; } CatalogDef;   /* top10 (Stremio Claude): the first ten, with their ranks */
 
 int  sb_init(void);
 /* ---- account ---- */

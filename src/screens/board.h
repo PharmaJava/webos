@@ -2,7 +2,7 @@
 #ifndef SB_BOARD_H
 #define SB_BOARD_H
 #include "core/app.h"
-extern Screen homeScreen, discScreen, libScreen, moviesScreen, seriesScreen, animeScreen;
+extern Screen homeScreen, discScreen, libScreen, moviesScreen, seriesScreen, animeScreen, platformScreen;
 int  board_home_ready(void);
 void tabs_warm_tick(void);    /* after start: the other tabs' first screens made ready in the background */    /* the first rows' posters are in, the hero is set, the backdrop is up */
 void board_profile_changed(void);
