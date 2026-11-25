@@ -947,6 +947,7 @@ void app_open_external(const char *url, const char *name) {
 }
 void app_play(const Stream *s, const char *type, const char *id, const char *vid, int fromStart);
 void app_open_item(const Item *it) {
+  { extern int kids_open(const Item *it); if (kids_open(it)) return; } /* (a TMDB title: its IMDb id first) */
   if (live_type(it->type)) { /* a channel: straight to a stream that sends a picture (All channels: its page) */
     if (!strcmp(it->id, LIVE_ALL_ID)) { hub_open(0, NULL); return; } /* the live hub */
     const Item *row = NULL; int n = (app_is_board(SCR) && SCR != SCR_LIB) ? board_row_items(it->id, &row) : 0; live_start(it, row, n, 0); return; }

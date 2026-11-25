@@ -103,6 +103,15 @@ int profiles_set_avatar(int id, int avatar) {
   return 1;
 }
 
+int profiles_kids(int id) { return cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(profile(id), "kids")); }
+int profiles_set_kids(int id, int on) {
+  cJSON *entry = profile(id); if (!entry) return 0;
+  cJSON_DeleteItemFromObjectCaseSensitive(entry, "kids");
+  if (on && !cJSON_AddItemToObject(entry, "kids", cJSON_CreateTrue())) return 0;
+  save();
+  return 1;
+}
+
 int profiles_rename(int id, const char *input) {
   char name[PROFILE_NAME_CAP];
   cJSON *entry = profile(id);

@@ -5,6 +5,7 @@
 #include "core/stremio.h"
 #include "core/scrobble.h"
 #include "core/traktrows.h"
+#include "core/kids.h"
 #include "core/traktwatch.h"
 #include "core/forcedsubs.h"
 #include "core/net.h"
@@ -186,6 +187,7 @@ static void cin_row(CatalogDef *d, const char *title, const char *type, const ch
 }
 /* the Films or the Series tab: today's Top 10, popular, top rated, this year's and last year's, then every genre */
 int sb_type_defs(const char *type, CatalogDef *out, int max) {
+  if (kids_on()) return kids_defs(!strcmp(type, "series") ? 3 : 2, out, max); /* (Stremio Claude: a child's profile) */
   int mov = !strcmp(type, "movie"), n = 0; const char *T2 = mov ? "Movies" : "Series"; char t[96], y[8], key[24];
   const char *const *gen = mov ? TAB_MGEN : TAB_SGEN; int ng = mov ? (int)(sizeof TAB_MGEN / sizeof *TAB_MGEN) : (int)(sizeof TAB_SGEN / sizeof *TAB_SGEN);
   if (n < max) { snprintf(t, sizeof t, "Top 10 · %s today", T2); snprintf(key, sizeof key, "t%c_top10", mov ? 'm' : 's'); cin_row(&out[n++], t, type, "top", NULL, key, 1); }
@@ -209,6 +211,7 @@ static int anime_cat_rank(const cJSON *ad, const cJSON *cat) {
   return 0;
 }
 int sb_anime_defs(CatalogDef *out, int max) {
+  if (kids_on()) return kids_defs(4, out, max);
   int n = 0; cJSON *a = sb_addons(); if (!a) return 0;
   for (int pass = 1; pass <= 2 && n < max; pass++) { int ai = 0; const cJSON *ad;
     cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) { ai++; continue; } const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat; char base[512]; addon_base(ad, base, sizeof base); int ci = 0;
@@ -225,6 +228,7 @@ int sb_anime_defs(CatalogDef *out, int max) {
 }
 /* Home: every installed catalog, in the addons' order (it showed the first 8 and dropped the rest) */
 int sb_home_defs(CatalogDef *out, int max) {
+  if (kids_on()) return kids_defs(0, out, max);
   int n = board_defs(out, max, 0);
   if (!n) {
     const char *defs[4][4] = { { "Popular · Movies", "movie", CINEMETA "/catalog/movie/top", "cin_m_top" }, { "Popular · Series", "series", CINEMETA "/catalog/series/top", "cin_s_top" },
@@ -241,6 +245,7 @@ int sb_home_defs(CatalogDef *out, int max) {
 static int disc_cat_ok(const cJSON *cat, char *ex, size_t cap) { const char *t = js_str(cat, "type", NULL), *id = js_str(cat, "id", NULL);
   return t && id && *t && *id && strcmp(t, "tv") && strcmp(t, "channel") && addon_cat_default_extra(cat, ex, cap) == 0; }
 int sb_disc_types(char (*out)[16], int max) {
+  if (kids_on()) { int n = 0; if (n < max) snprintf(out[n++], 16, "movie"); if (n < max) snprintf(out[n++], 16, "series"); return n; }
   int n = 0; cJSON *a = sb_addons(); const cJSON *ad; static const char *const first[] = { "movie", "series" };
   for (int f = 0; f < 3; f++) { if (a) cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) continue; const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat;
       if (cats) cJSON_ArrayForEach(cat, cats) { char ex[200]; if (!disc_cat_ok(cat, ex, sizeof ex)) continue; const char *t = js_str(cat, "type", "");
@@ -250,6 +255,7 @@ int sb_disc_types(char (*out)[16], int max) {
   return n;
 }
 int sb_disc_cats(const char *type, CatalogDef *out, char (*addon)[64], int max) {
+  if (kids_on()) { int n = kids_disc_cats(type, out, max); if (addon) for (int i = 0; i < n; i++) snprintf(addon[i], 64, "TMDB"); return n; }
   int n = 0, ai = 0; cJSON *a = sb_addons(); const cJSON *ad;
   if (a) cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) { ai++; continue; } const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat; char base[512]; addon_base(ad, base, sizeof base); int ci = 0;
     if (cats) cJSON_ArrayForEach(cat, cats) { char ex[200];
@@ -267,6 +273,7 @@ int sb_disc_cats(const char *type, CatalogDef *out, char (*addon)[64], int max) 
 static const cJSON *disc_cat_of(const CatalogDef *d) { int ai, ci; if (sscanf(d->key, "dc%d_%d", &ai, &ci) != 2) return NULL; cJSON *a = sb_addons(); const cJSON *ad = a ? cJSON_GetArrayItem(a, ai) : NULL;
   return ad ? cJSON_GetArrayItem(js_arr(js_obj(ad, "manifest"), "catalogs"), ci) : NULL; }
 int sb_disc_cat_genres(const CatalogDef *d, char (*out)[48], int max, int *required) {
+  if (kids_url(d->url)) { *required = 0; return 0; }
   *required = 0; const cJSON *cat = disc_cat_of(d), *opts = NULL, *o; int req = 0, n = 0; static const char *const G[] = { "genre" };
   if (!cat || !addon_cat_extra(cat, "genre", &req, &opts, NULL) || !opts) return 0;
   *required = req; (void)G;
@@ -437,6 +444,7 @@ static void *cat_cached_run(void *a) { plat_thread_background(5); CatJob *k = a;
     k->age = age > 0 && cache_file(r->key, age, cp, sizeof cp) && !r->force; }
   net_file("", on_cat_cached, k); return NULL; }
 void sb_catalog_url(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) {
+  if (kids_url(url)) { kids_fetch(url, type, n, cb, ud); return; } /* (Stremio Claude: a child's rows, from TMDB) */
   CatReq *r = calloc(1, sizeof *r); copy_str(r->url, sizeof r->url, url); copy_str(r->type, sizeof r->type, type); snprintf(r->key, sizeof r->key, "cat:%s", url); r->n = n; r->cb = cb; r->ud = ud;
   if (n > CAT_BIG) { CatJob *k = calloc(1, sizeof *k); k->r = r; pthread_t t; if (pthread_create(&t, NULL, cat_cached_run, k) == 0) { pthread_detach(t); return; } free(k); } /* (a big list: its kept copy read on its own thread) */
   size_t cl; unsigned char *t = cache_read(r->key, 0, &cl);
@@ -448,7 +456,7 @@ void sb_catalog_url(const char *url, const char *type, int n, void (*cb)(ItemLis
   net_get_timeout(url, 45000, on_catalog, r); /* (an addon that makes its lists on demand, AIOMetadata from TMDB, took more than the 20 s of other calls: the row stayed hidden) */
 }
 /* a big list asked again past the addon's cacheMaxAge (its kept copy is not handed back again: only a change, or gone) */
-void sb_catalog_recheck(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) { if (big_asked(url, 1)) return; /* (asked already this launch) */
+void sb_catalog_recheck(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) { if (kids_url(url) || big_asked(url, 1)) return; /* (asked already this launch) */
   CatReq *r = calloc(1, sizeof *r); copy_str(r->url, sizeof r->url, url); copy_str(r->type, sizeof r->type, type); snprintf(r->key, sizeof r->key, "cat:%s", url); r->n = n > CAT_BIG ? n : CAT_BIG + 1; r->cb = cb; r->ud = ud; r->force = 1;
   CatJob *k = calloc(1, sizeof *k); k->r = r; pthread_t t; if (pthread_create(&t, NULL, cat_cached_run, k) == 0) { pthread_detach(t); return; } free(k); free(r); }
 void sb_catalog(const CatalogDef *d, void (*cb)(ItemList *, int, void *), void *ud) { sb_catalog_url(d->url, d->type, 16, cb, ud); }
@@ -470,12 +478,14 @@ static void on_page(int st, const unsigned char *b, size_t len, void *ud) {
   page_work(k); on_page_done(0, NULL, 0, k); /* (no thread: here, as before) */
 }
 void sb_catalog_page(const CatalogDef *d, int skip, void (*cb)(ItemList *, int, void *), void *ud) {
+  if (kids_url(d->url)) { kids_page(d->url, d->type, skip, cb, ud); return; }
   char ex[260], sk[16], url[800]; copy_str(ex, sizeof ex, d->extra); snprintf(sk, sizeof sk, "%d", skip); addon_extra_add(ex, sizeof ex, "skip", sk);
   snprintf(url, sizeof url, "%s/%s.json", d->path, ex);
   PageReq *r = calloc(1, sizeof *r); copy_str(r->type, sizeof r->type, d->type); r->cb = cb; r->ud = ud; net_get(url, on_page, r);
 }
 /* every catalog that takes a search (and needs nothing else), in addon order */
 int sb_search_defs(const char *q, CatalogDef *out, int max) {
+  if (kids_on()) return kids_search_defs(q, out, max);
   int n = 0; cJSON *a = sb_addons(); const cJSON *ad; if (!a) return 0; static const char *const SN[1] = { "search" };
   cJSON_ArrayForEach(ad, a) { if (!sb_addon_on(ad)) continue; const cJSON *cats = js_arr(js_obj(ad, "manifest"), "catalogs"), *cat; char base[512]; addon_base(ad, base, sizeof base);
     if (cats) cJSON_ArrayForEach(cat, cats) { const char *ctype = js_str(cat, "type", NULL), *cid = js_str(cat, "id", NULL);
@@ -1180,6 +1190,7 @@ static void on_sug(int st, const unsigned char *b, size_t n, void *ud) {
   net_json_free(j); r->cb(l, names, nn, r->ud); free(r);
 }
 void sb_suggest(const char *q, void (*cb)(ItemList *, char[6][128], int, void *), void *ud) {
+  if (kids_on()) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); char none[6][128]; memset(none, 0, sizeof none); cb(l, none, 0, ud); return; } /* (a child's profile: IMDb's suggestions are for everyone) */
   char s[128]; copy_str(s, sizeof s, q); for (char *p = s; *p; p++) if (*p >= 'A' && *p <= 'Z') *p += 32;
   char first = (s[0] >= 'a' && s[0] <= 'z') || (s[0] >= '0' && s[0] <= '9') ? s[0] : 'x'; char enc[400]; urlenc(s, enc, sizeof enc);
   char url[600]; snprintf(url, sizeof url, "https://v3.sg.media-imdb.com/suggestion/%c/%s.json", first, enc);

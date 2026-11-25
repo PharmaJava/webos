@@ -12,6 +12,8 @@ const char *profiles_name(int id);
 int profiles_add(const char *name);
 int profiles_avatar(int id);
 int profiles_set_avatar(int id, int avatar);
+int profiles_kids(int id);            /* Stremio Claude: a child's profile */
+int profiles_set_kids(int id, int on);
 int profiles_rename(int id, const char *name);
 int profiles_delete(int id);
 int profiles_active(void);

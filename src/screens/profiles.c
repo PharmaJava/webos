@@ -13,13 +13,14 @@
 #include "ui/widgets.h"
 #include "ui/osk.h"
 #include "ui/text.h"
+#include "screens/board.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <string.h>
 
 enum { PICK, MANAGE, ADD, RENAME, CONFIRM_DELETE, AVATARS };
 enum { COLUMNS = 5, AVATAR_COLUMNS = 6 };
-enum { MENU_RENAME, MENU_AVATAR, MENU_DELETE };
+enum { MENU_RENAME, MENU_AVATAR, MENU_KIDS, MENU_DELETE };
 static struct {
   int tile, option, avatar_choice, mode, id, edit_error, after_login;
   int holding, held_id, fresh; /* fresh: the avatar choice of a profile just added (Back or OK: the picker) */
@@ -115,9 +116,11 @@ static int key(int k) {
   if (P.mode == MANAGE) {
     if (k == K_BACK) edit_close();
     else if (k == K_UP && P.option > MENU_RENAME) P.option--;
-    else if (k == K_DOWN && P.option < (can_delete() ? MENU_DELETE : MENU_AVATAR)) P.option++;
+    else if (k == K_DOWN && P.option < (can_delete() ? MENU_DELETE : MENU_KIDS)) P.option++;
     else if (k == K_OK) {
-      if (P.option == MENU_AVATAR) {
+      if (P.option == MENU_KIDS) { /* (Stremio Claude) only children's titles: the boards made again when it is the one watching */
+        if (profiles_set_kids(P.id, !profiles_kids(P.id)) && P.id == profiles_active()) board_profile_changed();
+      } else if (P.option == MENU_AVATAR) {
         P.avatar_choice = profiles_avatar(P.id);
         set_mode(AVATARS);
       } else edit_open(P.option == MENU_DELETE ? CONFIRM_DELETE : RENAME, P.id);
@@ -248,13 +251,14 @@ static void draw_panel(void) {
     }
   } else if (P.mode == MANAGE) {
     float x = SB_W / 2 - 270;
-    glass_rrect(x, 228, 540, can_delete() ? 480 : 406, 28, RGB(21,18,31), .14f, .02f, .19f);
+    glass_rrect(x, 228, 540, can_delete() ? 550 : 476, 28, RGB(21,18,31), .14f, .02f, .19f);
     profile_draw_avatar(profiles_avatar(P.id), SB_W / 2 - 52, 254, 104);
     text_draw(label(P.id), SB_W / 2, 373, 38, 700, WHITE_A(255), 0, 460, ALIGN_CENTER);
     lglass_accent(SB_W / 2 - 230, 442 + 70 * P.menu_focus.v, 460, 62, 16, 1);
     menu_button(T("Rename profile"), 442, MENU_RENAME);
     menu_button(T("Change avatar"), 512, MENU_AVATAR);
-    if (can_delete()) menu_button(T("Delete profile"), 582, MENU_DELETE);
+    menu_button(T(profiles_kids(P.id) ? "Kids profile: on" : "Kids profile: off"), 582, MENU_KIDS);
+    if (can_delete()) menu_button(T("Delete profile"), 652, MENU_DELETE);
   } else if (P.mode == CONFIRM_DELETE) {
     surface(SB_W / 2 - 360, 279, 720, 330, 28, 0.42f, 31);
     heading(T("Delete profile?"), 326);
@@ -303,6 +307,7 @@ static void draw_grid(int interactive) {
     if (focused) gfx_offset_pop();
     text_draw(id ? label(id) : T("Add profile"), x + size / 2, y + size + 12, 28,
               focused ? 700 : 500, WHITE_A(focused ? 255 : 186), 0, size + 8, ALIGN_CENTER);
+    if (id && profiles_kids(id)) text_draw(T("Kids"), x + size / 2, y + size + 48, 22, 600, WHITE_A(150), 0, size + 8, ALIGN_CENTER);
   }
   if (interactive && profiles_id(P.tile))
     text_draw(T("Hold OK to manage profile"), SB_W / 2, rows == 3 ? 930 : 795,
