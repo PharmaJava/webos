@@ -40,6 +40,7 @@
 #define RW_W 500.0f
 #define RW_H 281.0f
 #define RGAP 28.0f
+#define RANK_W 150.0f /* (Stremio Claude) a Top 10 row: the room of each number */
 #define GC_W 200.0f          /* Discover's grid: smaller than a row's posters (180 x 270 until 2026-11-08: a touch bigger, the user; still 8 a line) */
 #define GC_H 300.0f
 #define FILT_H 104.0f        /* Discover's filter strip (it stays put above the grid) */
@@ -87,9 +88,9 @@ static int focusOn(Board *b) { return cur() == b && !topNav.active && !spotOn(b)
 static float card_w(const Row *r) { return r->round ? RD_D : r->wide ? RW_W : r->grid ? GC_W : RC_W; }
 static float card_h(const Row *r) { return r->round ? RD_D : r->wide ? RW_H : r->grid ? GC_H : RC_H; }
 static float row_h(const Row *r) { if (r->filt) return FILT_H; if (r->grid) return 18 + card_h(r) + 34; return (18 + text_line_height(31) + 26 + card_h(r) + 34 + (r->round ? 44 : 0)) * (r->closing || r->opening ? r->hk : 1); } /* (a live badge: its name under it) */ /* (a row closing: its height goes as the ones under it move up) */
-static float step_of(const Row *r) { return card_w(r) + RGAP; }
+static float step_of(const Row *r) { return card_w(r) + RGAP + (r->def.top10 ? RANK_W : 0); }
 static int grid_cols(void) { return (int)((SB_W - 96 + RGAP) / (GC_W + RGAP)); }
-static float row_x0(const Row *r) { if (!r->grid) return 48; int n = grid_cols(); return (SB_W - (n * (GC_W + RGAP) - RGAP)) / 2; } /* (the grid centred under the centred strip) */
+static float row_x0(const Row *r) { if (!r->grid) return 48 + (r->def.top10 && !app_rtl() ? RANK_W : 0); int n = grid_cols(); return (SB_W - (n * (GC_W + RGAP) - RGAP)) / 2; } /* (the grid centred under the centred strip) */
 static const Item *focused_of(Board *b) { if (spotOn(b) && b->nfeat) return &b->feat[b->featIdx % b->nfeat]; if (b->rowIdx < 0 || b->rowIdx >= b->n) return NULL; Row *r = &b->rows[b->rowIdx]; return r->col < r->items.n ? &r->items.items[r->col] : NULL; }
 int board_spot_up(void) { Board *b = cur(); return b && b->kind == 1 && b->featOn && !topNav.active; }
 
@@ -920,11 +921,16 @@ static float move_x(Row *r, int i, float x, float step, float *fa) {
   float k = t < 0.5f ? 4 * t * t * t : 1 - (-2 * t + 2) * (-2 * t + 2) * (-2 * t + 2) / 2; int o = i < 48 ? r->oldIdx[i] : -1;
   if (o < 0) { if (fa) *fa = k; return x; } float ox = row_x0(r) + o * step - r->moveOff; if (app_rtl()) ox = SB_W - ox - card_w(r); return ox + (x - ox) * k; }
 /* Stremio Claude: a Top 10's rank on its card, a big white figure on the lower left with a soft dark edge so it reads on any poster */
+/* Top 10 (Stremio Claude), as Netflix shows it: the rank as a huge number beside the poster, as tall as the card,
+   dark with a grey outline, narrowed so two digits fit; the poster comes over its edge. Drawn before the card. */
 static void rank_draw(int n, float x, float cy, float cw, float ch) {
-  char t[4]; snprintf(t, sizeof t, "%d", n); int px = (int)(ch * 0.42f); if (px > 130) px = 130; if (px < 48) px = 48;
-  float tx = app_rtl() ? x + cw - 12 : x + 12, ty = cy + ch - px * 1.08f; int al = app_rtl() ? ALIGN_RIGHT : ALIGN_LEFT;
-  for (int k = 0; k < 4; k++) text_draw(t, tx + (k & 1 ? 3 : -3), ty + (k & 2 ? 3 : -3), px, 900, BLACK_A(110), -2, 0, al);
-  text_draw(t, tx, ty, px, 900, WHITE_A(245), -2, 0, al);
+  char t[4]; snprintf(t, sizeof t, "%d", n); int px = (int)(ch * 1.1f), rtl = app_rtl();
+  float edge = rtl ? x + cw - cw * 0.05f : x + cw * 0.05f, ty = cy + ch - px * 1.08f, sx = n >= 10 ? 0.34f : 0.56f; /* (the number's edge under the poster) */
+  gfx_scale_push(sx, 1, edge, cy + ch / 2);
+  int al = rtl ? ALIGN_LEFT : ALIGN_RIGHT; float w = 5.0f / sx; /* (the outline as thick across as down, once narrowed) */
+  for (int k = 0; k < 16; k++) { float a = k * 0.3927f; text_draw(t, edge + cosf(a) * w, ty + sinf(a) * 5.0f, px, 900, RGB(0x72, 0x72, 0x78), -px * 0.06f, 0, al); }
+  text_draw(t, edge, ty, px, 900, RGB(0x10, 0x10, 0x14), -px * 0.06f, 0, al);
+  gfx_scale_pop();
 }
 static void row_draw(Board *b, Row *r, int ri, float y, int near, float rowA) {
   if (r->filt) { filt_draw(b, r, ri, y, rowA, focusOn(b) && ri == b->rowIdx); return; }
@@ -955,10 +961,10 @@ static void row_draw(Board *b, Row *r, int ri, float y, int near, float rowA) {
     if (active && i == r->col) continue; /* the focused card is drawn last, over its neighbours as it grows */
     if (mfa < 1) gfx_opacity_push(mfa); /* (a card new to the row fades in as the rest glide) */
     int hold; const CardPrep *cp = row_prep(r, i, load, &hold, NULL); unsigned long long lk = lift_key(r, i);
+    if (r->def.top10) rank_draw(i + 1, x, cy, cw, ch);
     float cr = r->round ? cw / 2 : CARD_R; lift_begin(lk, 0, 0, x, cy, cw, ch, cr); /* (the one the focus just left settles back) */
     if (r->round) { card_draw_round(&r->items.items[i], x, cy, cw); text_draw(r->items.items[i].name, x + cw / 2, cy + ch + 14, 22, 600, WHITE_A(200), 0, cw + 8, ALIGN_CENTER); }
     else card_draw_prep(&r->items.items[i], cp, x, cy, cw, ch, r->wide, r->label, !hold && (load || near));
-    if (r->def.top10) rank_draw(i + 1, x, cy, cw, ch);
     if (melt > 0.01f && mkRow == r && mkCol == i) playing_mark(x, cy, ch, melt); /* (the focus has moved on: it fades where it was) */
     lift_end(lk, x, cy, cw, ch, cr); if (mfa < 1) gfx_opacity_pop();
   }
@@ -968,10 +974,10 @@ static void row_draw(Board *b, Row *r, int ri, float y, int near, float rowA) {
     int hold; const CardPrep *cp = row_prep(r, r->col, 1, &hold, NULL);
     float fa = ra * (1 - 0.15f * melt); if (fa < 1) gfx_opacity_push(fa); /* the card whose trailer plays stays clear (.85) while the rest melts */
     float hp = app_hold_progress(); unsigned long long lk = lift_key(r, r->col);
+    if (r->def.top10) rank_draw(r->col + 1, x, cy, cw, ch);
     float cr = r->round ? cw / 2 : CARD_R; lift_begin(lk, 1, hp, x, cy, cw, ch, cr);
     if (r->round) { card_draw_round(&r->items.items[r->col], x, cy, cw); text_draw(r->items.items[r->col].name, x + cw / 2, cy + ch + 14, 22, 700, WHITE_A(255), 0, cw + 8, ALIGN_CENTER); }
     else card_draw_prep(&r->items.items[r->col], cp, x, cy, cw, ch, r->wide, r->label, 1);
-    if (r->def.top10) rank_draw(r->col + 1, x, cy, cw, ch);
     if (hp > 0) hold_trace_draw(x, cy, cw, ch, cr, ease_apply(EASE_IN_OUT, hp));
     if (btr_playing() && melt > 0.9f) { mkRow = r; mkCol = r->col; } /* the card whose trailer plays: the mark stays on it, and goes with it */
     if (melt > 0.01f && mkRow == r && mkCol == r->col) playing_mark(x, cy, ch, melt);
