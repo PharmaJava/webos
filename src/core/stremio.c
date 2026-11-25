@@ -232,6 +232,7 @@ int sb_anime_defs(CatalogDef *out, int max) {
 int sb_home_defs(CatalogDef *out, int max) {
   if (kids_on()) return kids_defs(0, out, max);
   int pn = max > 1 ? platforms_row(out) : 0; /* (Stremio Claude: the platforms' icons first) */
+  pn += premieres_rows(out + pn, max - pn - 1); /* (and the premieres, after Continue Watching and Live TV) */
   int n = pn + board_defs(out + pn, max - pn, 0);
   if (n == pn) {
     const char *defs[4][4] = { { "Popular · Movies", "movie", CINEMETA "/catalog/movie/top", "cin_m_top" }, { "Popular · Series", "series", CINEMETA "/catalog/series/top", "cin_s_top" },

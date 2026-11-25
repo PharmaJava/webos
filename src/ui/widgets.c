@@ -257,6 +257,7 @@ static void logo_tint(const char *url, uint32_t *c1, uint32_t *c2) {
 void card_draw_round(const Item *it, float x, float y, float d) {
   float r = d / 2, cx = x + r, cy = y + r;
   if (!strcmp(it->id, LIVE_ALL_ID)) { livewall_card(x, y, d, d, r, 0); return; }
+  if (!strcmp(it->id, "surp:")) { gfx_rrect_v(x, y, d, d, r, RGB(0x8b, 0x5c, 0xf6), RGB(0xec, 0x48, 0x99)); icon_draw("g_spark", cx - d * 0.24f, cy - d * 0.24f, d * 0.48f, WHITE_A(255)); return; } /* (Stremio Claude: Surprise me) */
   if (!strcmp(it->type, "platform")) { GLuint pt = it->logo[0] ? img_get(it->logo, (int)d, (int)d, NULL) : 0; /* (Stremio Claude: a platform, its own icon) */
     if (pt) gfx_image(pt, x, y, d, d, r, WHITE_A(255), 0, 0, 1, 1); else gfx_rrect(x, y, d, d, r, RGBA(26, 24, 36, 235)); return; } /* the one marked LIVE: the channels' own wall, panning */
   /* a channel: a soft dark glass disc, its logo large on it, a faint glow of the logo's own colour behind */

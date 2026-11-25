@@ -1157,7 +1157,7 @@ static void open_request_tick(void) {
 void app_tick(float dt) {
   DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++; away_tick();
   open_request_tick();
-  { extern void video_ss_tick(void); video_ss_tick(); } /* (Stremio Claude: the TV's screen saver answered from the start, menus too) */
+  { extern void video_ss_tick(void); video_ss_tick(); } { extern void kids_tick(float); kids_tick(dt); } /* (Stremio Claude: the TV's screen saver answered from the start, menus too) */
   ptr_idle();
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */

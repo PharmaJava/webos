@@ -103,6 +103,14 @@ int profiles_set_avatar(int id, int avatar) {
   return 1;
 }
 
+int profiles_int(int id, const char *key, int def) { const cJSON *v = cJSON_GetObjectItemCaseSensitive(profile(id), key); return cJSON_IsNumber(v) ? v->valueint : def; }
+int profiles_set_int(int id, const char *key, int v) {
+  cJSON *entry = profile(id); if (!entry) return 0;
+  cJSON_DeleteItemFromObjectCaseSensitive(entry, key);
+  if (v && !cJSON_AddItemToObject(entry, key, cJSON_CreateNumber(v))) return 0;
+  save();
+  return 1;
+}
 int profiles_kids(int id) { return cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(profile(id), "kids")); }
 int profiles_set_kids(int id, int on) {
   cJSON *entry = profile(id); if (!entry) return 0;

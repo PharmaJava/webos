@@ -10,6 +10,8 @@
 #include "core/json.h"
 #include "core/i18n.h"
 #include "core/app.h"
+#include "core/store.h"
+#include "screens/surprise.h"
 #include "platform/plat.h"
 #include "screens/detail.h"
 #include "ui/widgets.h"
@@ -111,7 +113,10 @@ int kids_defs(int kind, CatalogDef *out, int max) {
   if (kind == 2) return rows(FILMS, sizeof FILMS / sizeof FILMS[0], out, max, NULL);
   if (kind == 3) return rows(SERIES, sizeof SERIES / sizeof SERIES[0], out, max, NULL);
   if (kind == 4) return rows(ANIME, sizeof ANIME / sizeof ANIME[0], out, max, NULL);
-  return rows(HOME, sizeof HOME / sizeof HOME[0], out, max, NULL);
+  if (max < 2) return rows(HOME, sizeof HOME / sizeof HOME[0], out, max, NULL);
+  CatalogDef *s0 = &out[0]; memset(s0, 0, sizeof *s0); snprintf(s0->title, sizeof s0->title, "%s", T("Surprise me")); snprintf(s0->type, sizeof s0->type, "platform");
+  snprintf(s0->url, sizeof s0->url, PFX "s/"); snprintf(s0->path, sizeof s0->path, "%s", s0->url); snprintf(s0->key, sizeof s0->key, "k_surp"); s0->round = 1;
+  return 1 + rows(HOME, sizeof HOME / sizeof HOME[0], out + 1, max - 1, NULL);
 }
 int kids_disc_cats(const char *type, CatalogDef *out, int max) {
   if (!tmdb_has_key()) { CatalogDef all[8]; int n = cinemeta(0, all, 8), k = 0; for (int i = 0; i < n && k < max; i++) if (!strcmp(all[i].type, type)) out[k++] = all[i]; return k; }
@@ -143,10 +148,11 @@ typedef struct { char type[16]; int filter, max; void (*cb)(ItemList *, int, voi
    watched ones (never an add-on channel of another one, nor an "with ads" twin), fourteen at most */
 static const int FAMOUS[] = { 8, 337, 1899, 119, 350, 149, 1773, 531, 63, 283, 35, 11, 300, 15, 386 };
 static int channel_twin(const char *nm) { return strstr(nm, "Channel") || strstr(nm, "with Ads") || strstr(nm, "Standard with") || strstr(nm, "Basic with") || strstr(nm, "Store") || strstr(nm, "Play Movies") || !strcmp(nm, "Amazon Video"); } /* (rental shops: nothing to watch with a subscription) */
+static void surprise_item(Item *it);
 static ItemList *parse_providers(cJSON *j) {
   const cJSON *res = js_arr(j, "results"), *x; ItemList *l = calloc(1, sizeof *l); l->items = calloc(16, sizeof(Item)); l->total = j ? 0 : -1;
-  if (!res) return l; char reg[8], lang[24]; place(lang, sizeof lang, reg, sizeof reg);
-  for (int pass = 0; pass < 2; pass++) for (size_t f = 0; f < (pass ? 999 : sizeof FAMOUS / sizeof FAMOUS[0]) && l->n < 14; f++) {
+  if (!res) return l; surprise_item(&l->items[l->n++]); /* (Surprise me, first among the platforms) */ char reg[8], lang[24]; place(lang, sizeof lang, reg, sizeof reg);
+  for (int pass = 0; pass < 2; pass++) for (size_t f = 0; f < (pass ? 999 : sizeof FAMOUS / sizeof FAMOUS[0]) && l->n < 15; f++) {
     const cJSON *pick = NULL; int best = 1 << 30;
     cJSON_ArrayForEach(x, res) { int id = (int)js_num(x, "provider_id", 0); const char *nm = js_str(x, "provider_name", ""), *lp = js_str(x, "logo_path", ""); if (!id || !*nm || !*lp) continue;
       int have = 0; for (int i = 0; i < l->n && !have; i++) have = atoi(l->items[i].id + 5) == id; if (have) continue;
@@ -173,14 +179,54 @@ static ItemList *parse(const unsigned char *body, const KReq *r, int *more) {
     if (*bp) snprintf(it->background, sizeof it->background, "https://image.tmdb.org/t/p/w1280%s", bp);
     snprintf(it->description, sizeof it->description, "%s", js_str(x, "overview", "")); if (strlen(dt) >= 4) snprintf(it->metaLine, sizeof it->metaLine, "%.4s", dt); }
   net_json_free(j); return l; }
+/* ---- the premieres (Stremio Claude): what comes out on the platforms in the next weeks, each with its day. A series' day is
+   its first air date; a film's is its digital release in this country (asked of each film), the one streaming services use.
+   The day one comes out, a notice on Home (once a day). */
+static double day_at(const char *ymd) { struct tm tm; memset(&tm, 0, sizeof tm); if (sscanf(ymd, "%d-%d-%d", &tm.tm_year, &tm.tm_mon, &tm.tm_mday) != 3) return 0; tm.tm_year -= 1900; tm.tm_mon--; tm.tm_hour = 12; tm.tm_isdst = -1; return (double)mktime(&tm); }
+typedef struct { KReq *r; ItemList *l; int left; } UpJob;
+static int by_day(const void *a, const void *b) { double x = ((const Item *)a)->airAt, y = ((const Item *)b)->airAt; return x < y ? -1 : x > y; }
+static void up_done(UpJob *u) {
+  ItemList *l = u->l; int k = 0; double now = (double)time(NULL), from = now - 2 * 86400, to = now + 40 * 86400;
+  for (int i = 0; i < l->n; i++) if (l->items[i].airAt >= from && l->items[i].airAt <= to) l->items[k++] = l->items[i];
+  l->n = k; l->total = k; qsort(l->items, (size_t)l->n, sizeof(Item), by_day);
+  char today[16], names[300] = ""; time_t t = time(NULL); struct tm tm; localtime_r(&t, &tm); strftime(today, sizeof today, "%Y-%m-%d", &tm); int nt = 0;
+  for (int i = 0; i < l->n; i++) { time_t a = (time_t)l->items[i].airAt; struct tm b; localtime_r(&a, &b); char d[16]; strftime(d, sizeof d, "%Y-%m-%d", &b);
+    if (!strcmp(d, today) && nt < 3) { size_t m = strlen(names); snprintf(names + m, sizeof names - m, "%s%s", nt ? ", " : "", l->items[i].name); nt++; } }
+  char key[24]; snprintf(key, sizeof key, "premToast-%c", u->r->type[0]);
+  extern int player_open(void);
+  if (nt && strcmp(store_get(key, ""), today) && !player_open()) { store_set(key, today); toast(T1("Out today: {t}", "t", names), 6000, NULL); }
+  u->r->cb(l, 0, u->r->ud); free(u->r); free(u);
+}
+static void on_reldate(int st, const unsigned char *body, size_t len, void *ud) {
+  (void)len; Item *it = ud; UpJob *u; memcpy(&u, it->epName, sizeof u); it->epName[0] = 0; /* (the job rode in the item's spare field while it was asked) */
+  cJSON *j = st == 200 ? net_json(body) : NULL; char lang[24], reg[8]; place(lang, sizeof lang, reg, sizeof reg); double best = 0;
+  const cJSON *res = js_arr(j, "results"), *x; if (res) cJSON_ArrayForEach(x, res) { if (strcmp(js_str(x, "iso_3166_1", ""), reg)) continue;
+    const cJSON *rd = js_arr(x, "release_dates"), *y; if (rd) cJSON_ArrayForEach(y, rd) { int ty = (int)js_num(y, "type", 0); if (ty != 4) continue; double a = day_at(js_str(y, "release_date", "")); if (a > 0 && (!best || a < best)) best = a; } }
+  net_json_free(j); it->airAt = best;
+  if (--u->left == 0) up_done(u);
+}
+static void on_up(int st, const unsigned char *body, size_t len, void *ud) {
+  (void)len; KReq *r = ud; ItemList *l = parse(st == 200 ? body : NULL, r, NULL);
+  if (!strcmp(r->type, "series")) { cJSON *j = st == 200 ? net_json(body) : NULL; const cJSON *res = js_arr(j, "results"), *x;
+    if (res) cJSON_ArrayForEach(x, res) { char id[24]; snprintf(id, sizeof id, "tmdb:%d", (int)js_num(x, "id", 0)); for (int i = 0; i < l->n; i++) if (!strcmp(l->items[i].id, id)) l->items[i].airAt = day_at(js_str(x, "first_air_date", "")); }
+    net_json_free(j); UpJob *u = calloc(1, sizeof *u); u->r = r; u->l = l; up_done(u); return; }
+  UpJob *u = calloc(1, sizeof *u); u->r = r; u->l = l; u->left = l->n;
+  if (!l->n) { up_done(u); return; }
+  int n = l->n; for (int i = 0; i < n; i++) { Item *it = &l->items[i]; memcpy(it->epName, &u, sizeof u); char path[64]; snprintf(path, sizeof path, "/movie/%d/release_dates", atoi(it->id + 5));
+    if (!tmdb_request(path, on_reldate, it)) { it->epName[0] = 0; if (--u->left == 0) { up_done(u); return; } } }
+}
 static void on_list(int st, const unsigned char *body, size_t len, void *ud) { (void)len; KReq *r = ud; ItemList *l = parse(st == 200 ? body : NULL, r, NULL); r->cb(l, 0, r->ud); free(r); }
 static void on_page(int st, const unsigned char *body, size_t len, void *ud) { (void)len; KReq *r = ud; int more = 0; ItemList *l = st == 200 ? parse(body, r, &more) : NULL; r->pcb(l, more, r->ud); free(r); }
 
-static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter || !strncmp(p, "p/", 2) ? p + 1 : p; } /* f/: a search kept to children's titles; p/: the platforms */
+/* f/: a search kept to children's titles; p/: the platforms; u/: the premieres; s/: the Surprise me badge alone */
+static const char *tmdb_path(const char *url, int *filter) { const char *p = url + sizeof PFX - 1; *filter = !strncmp(p, "f/", 2); return *filter || !strncmp(p, "p/", 2) || !strncmp(p, "u/", 2) || !strncmp(p, "s/", 2) ? p + 1 : p; }
+static void surprise_item(Item *it) { memset(it, 0, sizeof *it); snprintf(it->id, sizeof it->id, "surp:"); snprintf(it->type, sizeof it->type, "platform"); snprintf(it->name, sizeof it->name, "%s", T("Surprise me")); snprintf(it->description, sizeof it->description, "%s", T("One good title for tonight, by mood")); }
 void kids_fetch(const char *url, const char *type, int n, void (*cb)(ItemList *, int, void *), void *ud) {
+  const char *raw = url + sizeof PFX - 1;
+  if (!strncmp(raw, "s/", 2)) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); surprise_item(&l->items[0]); l->n = l->total = 1; cb(l, 0, ud); return; }
   KReq *r = calloc(1, sizeof *r); snprintf(r->type, sizeof r->type, "%s", type); r->max = n > 0 ? n : 20; r->cb = cb; r->ud = ud;
   const char *p = tmdb_path(url, &r->filter);
-  if (!tmdb_request(p, on_list, r)) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); l->total = -1; free(r); cb(l, 0, ud); }
+  if (!tmdb_request(p, !strncmp(raw, "u/", 2) ? on_up : on_list, r)) { ItemList *l = calloc(1, sizeof *l); l->items = calloc(1, sizeof(Item)); l->total = -1; free(r); cb(l, 0, ud); }
 }
 void kids_page(const char *url, const char *type, int skip, void (*cb)(ItemList *, int, void *), void *ud) {
   KReq *r = calloc(1, sizeof *r); snprintf(r->type, sizeof r->type, "%s", type); r->max = 40; r->pcb = cb; r->ud = ud;
@@ -198,6 +244,7 @@ static void on_ext(int st, const unsigned char *body, size_t len, void *ud) {
   net_json_free(j); free(it);
 }
 int kids_open(const Item *it) {
+  if (!strcmp(it->id, "surp:")) { surprise_show(); return 1; } /* (Surprise me) */
   { extern int platform_open(const Item *it); if (platform_open(it)) return 1; } /* (a platform: its page) */
   if (strncmp(it->id, "tmdb:", 5)) return 0;
   Item *c = malloc(sizeof *c); if (!c) return 1; *c = *it; c->ep = (int)++openGen; /* (ep carries which press this is: only the last one opens) */

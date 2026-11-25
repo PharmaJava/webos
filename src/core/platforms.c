@@ -35,6 +35,17 @@ int platforms_row(CatalogDef *out) {
   def(out, T("Platforms"), "platform", path, "plat_row", 0, 0); out->round = 1; return 1;
 }
 
+/* the premieres: films reaching streaming in this country in the next weeks, and new series (their day on each card) */
+int premieres_rows(CatalogDef *out, int max) {
+  if (!tmdb_has_key() || max < 2) return 0;
+  char lang[24], reg[8], a[16], b[16], c[16], path[480]; place(lang, sizeof lang, reg, sizeof reg); ago(a, sizeof a, 2); ago(b, sizeof b, -40); ago(c, sizeof c, 60);
+  snprintf(path, sizeof path, "u/discover/movie?region=%s&with_release_type=4&release_date.gte=%s&release_date.lte=%s&sort_by=popularity.desc&language=%s", reg, a, b, lang);
+  def(&out[0], T("Coming to streaming"), "movie", path, "prem_m", 0, 0); out[0].wide = 1;
+  snprintf(path, sizeof path, "u/discover/tv?first_air_date.gte=%s&first_air_date.lte=%s&sort_by=popularity.desc&without_genres=10763,10767,10764&language=%s", a, b, lang);
+  def(&out[1], T("New series premieres"), "series", path, "prem_s", 0, 0); out[1].wide = 1;
+  (void)c; return 2;
+}
+
 int platform_defs(CatalogDef *out, int max) {
   if (!cur.id || !tmdb_has_key()) return 0;
   char lang[24], reg[8], now[16], d90[16], d30[16]; place(lang, sizeof lang, reg, sizeof reg); ago(now, sizeof now, 0); ago(d90, sizeof d90, 120); ago(d30, sizeof d30, 30);

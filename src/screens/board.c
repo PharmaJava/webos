@@ -266,7 +266,7 @@ static int disc_catalog(void) { /* the strip's choice into the listing's members
   return DS.nm > 0; }
 /* one catalog's row: what it had kept, or asked of its source (0: no room for more rows) */
 static int def_row(Board *b, const CatalogDef *d0, KeptRow *kp, int nk) {
-  Row *r = row_add(b, d0[0].title, 0, 0); if (!r) return 0; int ri = (int)(r - b->rows); r->def = d0[0]; r->hasDef = 1; r->round = d0[0].round; /* (the platforms: round badges) */
+  Row *r = row_add(b, d0[0].title, d0[0].wide, 0); if (!r) return 0; int ri = (int)(r - b->rows); r->def = d0[0]; r->hasDef = 1; r->round = d0[0].round; /* (the platforms: round badges) */
     int k = -1; for (int j = 0; j < nk && k < 0; j++) if (same_row(&kp[j], r->title, &r->def, 1)) k = j;
     if (k >= 0) { r->col = kp[k].col; if (kp[k].items.n) { r->items = kp[k].items; memset(&kp[k].items, 0, sizeof kp[k].items); r->skipAt = kp[k].skipAt; r->more = kp[k].more; r->hidden = 0; return 1; } } /* (what it had, kept: not asked again) */
     sb_catalog(d0, on_catalog, tok(b, ri)); return 1;

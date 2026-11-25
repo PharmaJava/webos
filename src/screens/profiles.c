@@ -14,16 +14,17 @@
 #include "ui/osk.h"
 #include "ui/text.h"
 #include "screens/board.h"
+#include "screens/pinpad.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <string.h>
 
 enum { PICK, MANAGE, ADD, RENAME, CONFIRM_DELETE, AVATARS };
 enum { COLUMNS = 5, AVATAR_COLUMNS = 6 };
-enum { MENU_RENAME, MENU_AVATAR, MENU_KIDS, MENU_DELETE };
+enum { MENU_RENAME, MENU_AVATAR, MENU_KIDS, MENU_LIMIT, MENU_BED, MENU_LOCK, MENU_DELETE };
 static struct {
   int tile, option, avatar_choice, mode, id, edit_error, after_login;
-  int holding, held_id, fresh; /* fresh: the avatar choice of a profile just added (Back or OK: the picker) */
+  int holding, held_id, fresh, unlocked; /* unlocked: the parent PIN given for this menu */ /* fresh: the avatar choice of a profile just added (Back or OK: the picker) */
   double hold_at;
   char name[PROFILE_NAME_CAP];
   Osk keyboard;
@@ -72,9 +73,15 @@ static int can_delete(void) {
   return profiles_count() > 1 && P.id != profiles_active();
 }
 
+static void pick_id(int id);
+static void on_pick_pin(int ok, void *ud) { if (ok) pick_id((int)(intptr_t)ud); }
 static void select_tile(void) {
   int id = profiles_id(P.tile);
   if (!id) { edit_open(ADD, 0); return; }
+  if (profiles_int(id, "lock", 0) && pin_is_set() && id != profiles_active()) { pin_ask(PIN_CHECK, label(id), on_pick_pin, (void *)(intptr_t)id); return; } /* (Stremio Claude: a locked profile) */
+  pick_id(id);
+}
+static void pick_id(int id) {
   int launching = !profiles_active();
   if (!app_pick_profile(id)) return;
   if (launching && P.after_login) {
@@ -112,18 +119,33 @@ static int tile_count(void) {
   return count + (count < PROFILE_MAX);
 }
 
+/* (Stremio Claude) the menu's options for this profile: a child's has its limit and bedtime, the others a lock */
+static int menu_items(int *ids) { int n = 0; ids[n++] = MENU_RENAME; ids[n++] = MENU_AVATAR; ids[n++] = MENU_KIDS;
+  if (profiles_kids(P.id)) { ids[n++] = MENU_LIMIT; ids[n++] = MENU_BED; } else ids[n++] = MENU_LOCK;
+  if (can_delete()) ids[n++] = MENU_DELETE; return n; }
+static const int LIMITS[] = { 0, 30, 60, 90, 120, 180 }, BEDS[] = { 0, 1140, 1170, 1200, 1230, 1260, 1290, 1320 };
+static void next_of(const char *key, const int *v, int n) { int cur = profiles_int(P.id, key, 0), i = 0; while (i < n && v[i] != cur) i++; profiles_set_int(P.id, key, v[(i + 1) % n]); }
+static void do_option(int o) {
+  if (o == MENU_KIDS) { if (profiles_set_kids(P.id, !profiles_kids(P.id)) && P.id == profiles_active()) board_profile_changed(); } /* only children's titles: the boards made again */
+  else if (o == MENU_LIMIT) next_of("limit", LIMITS, 6);
+  else if (o == MENU_BED) next_of("bed", BEDS, 8);
+  else if (o == MENU_LOCK) profiles_set_int(P.id, "lock", !profiles_int(P.id, "lock", 0));
+  else if (o == MENU_DELETE) edit_open(CONFIRM_DELETE, P.id);
+  int ids[8], n = menu_items(ids); if (P.option >= n) P.option = n - 1;
+}
+static void on_option_pin(int ok, void *ud) { if (!ok) return; P.unlocked = 1; do_option((int)(intptr_t)ud); }
 static int key(int k) {
   if (P.mode == MANAGE) {
-    if (k == K_BACK) edit_close();
-    else if (k == K_UP && P.option > MENU_RENAME) P.option--;
-    else if (k == K_DOWN && P.option < (can_delete() ? MENU_DELETE : MENU_KIDS)) P.option++;
-    else if (k == K_OK) {
-      if (P.option == MENU_KIDS) { /* (Stremio Claude) only children's titles: the boards made again when it is the one watching */
-        if (profiles_set_kids(P.id, !profiles_kids(P.id)) && P.id == profiles_active()) board_profile_changed();
-      } else if (P.option == MENU_AVATAR) {
-        P.avatar_choice = profiles_avatar(P.id);
-        set_mode(AVATARS);
-      } else edit_open(P.option == MENU_DELETE ? CONFIRM_DELETE : RENAME, P.id);
+    int ids[8], n = menu_items(ids);
+    if (k == K_BACK) { P.unlocked = 0; edit_close(); }
+    else if (k == K_UP && P.option > 0) P.option--;
+    else if (k == K_DOWN && P.option < n - 1) P.option++;
+    else if (k == K_OK) { int o = ids[P.option < n ? P.option : 0];
+      if (o == MENU_AVATAR) { P.avatar_choice = profiles_avatar(P.id); set_mode(AVATARS); }
+      else if (o == MENU_RENAME) edit_open(RENAME, P.id);
+      else if (P.unlocked) do_option(o);
+      else if (!pin_is_set() && o != MENU_DELETE) pin_ask(PIN_NEW, T("Parent PIN"), on_option_pin, (void *)(intptr_t)o); /* (the first guarded change makes the PIN: a child cannot undo it) */
+      else pin_ask(PIN_CHECK, T("Parent PIN"), on_option_pin, (void *)(intptr_t)o);
     }
     return 1;
   }
@@ -251,14 +273,20 @@ static void draw_panel(void) {
     }
   } else if (P.mode == MANAGE) {
     float x = SB_W / 2 - 270;
-    glass_rrect(x, 228, 540, can_delete() ? 550 : 476, 28, RGB(21,18,31), .14f, .02f, .19f);
+    int ids[8], n = menu_items(ids);
+    glass_rrect(x, 228, 540, 238 + 70 * n, 28, RGB(21,18,31), .14f, .02f, .19f);
     profile_draw_avatar(profiles_avatar(P.id), SB_W / 2 - 52, 254, 104);
     text_draw(label(P.id), SB_W / 2, 373, 38, 700, WHITE_A(255), 0, 460, ALIGN_CENTER);
     lglass_accent(SB_W / 2 - 230, 442 + 70 * P.menu_focus.v, 460, 62, 16, 1);
-    menu_button(T("Rename profile"), 442, MENU_RENAME);
-    menu_button(T("Change avatar"), 512, MENU_AVATAR);
-    menu_button(T(profiles_kids(P.id) ? "Kids profile: on" : "Kids profile: off"), 582, MENU_KIDS);
-    if (can_delete()) menu_button(T("Delete profile"), 652, MENU_DELETE);
+    for (int i = 0; i < n; i++) { char t[96], v[24]; int o = ids[i];
+      if (o == MENU_RENAME) snprintf(t, sizeof t, "%s", T("Rename profile"));
+      else if (o == MENU_AVATAR) snprintf(t, sizeof t, "%s", T("Change avatar"));
+      else if (o == MENU_KIDS) snprintf(t, sizeof t, "%s", T(profiles_kids(P.id) ? "Kids profile: on" : "Kids profile: off"));
+      else if (o == MENU_LOCK) snprintf(t, sizeof t, "%s", T(profiles_int(P.id, "lock", 0) ? "Locked with PIN: on" : "Locked with PIN: off"));
+      else if (o == MENU_LIMIT) { int m = profiles_int(P.id, "limit", 0); if (!m) snprintf(t, sizeof t, "%s", T("Daily limit: off")); else { if (m % 60) snprintf(v, sizeof v, m >= 60 ? "%d h %d min" : "%d min", m >= 60 ? m / 60 : m, m % 60); else snprintf(v, sizeof v, "%d h", m / 60); snprintf(t, sizeof t, "%s", T1("Daily limit: {t}", "t", v)); } }
+      else if (o == MENU_BED) { int b = profiles_int(P.id, "bed", 0); if (!b) snprintf(t, sizeof t, "%s", T("Bedtime: off")); else { snprintf(v, sizeof v, "%02d:%02d", b / 60, b % 60); snprintf(t, sizeof t, "%s", T1("Bedtime: {t}", "t", v)); } }
+      else snprintf(t, sizeof t, "%s", T("Delete profile"));
+      menu_button(t, 442 + 70 * i, i); }
   } else if (P.mode == CONFIRM_DELETE) {
     surface(SB_W / 2 - 360, 279, 720, 330, 28, 0.42f, 31);
     heading(T("Delete profile?"), 326);
