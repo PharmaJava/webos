@@ -55,8 +55,9 @@ if [ ! -f "$B/tp/libtp.a" ]; then echo "== third-party ($T)"; TPQ="-w $OPT"
   $CXX -w $OPT -std=c++11 -fno-exceptions -fno-rtti -DHAVE_FREETYPE=1 -DHAVE_PTHREAD=1 -I$TP/freetype/include -I$TP/harfbuzz/src -c "$TP/harfbuzz/src/harfbuzz.cc" -o "$B/tp/harfbuzz.o"
   for f in "$TP"/fribidi/lib/fribidi*.c; do $CC $TPQ -DHAVE_CONFIG_H -I$TP/config/fribidi -I$TP/fribidi/lib -c "$f" -o "$B/tp/fb_$(basename "${f%.c}").o"; done
   $CC $TPQ -c "$TP/cjson/cJSON.c" -o "$B/tp/cJSON.o"; $CC $TPQ -c "$TP/qrcodegen/qrcodegen.c" -o "$B/tp/qrcodegen.o"
-  for f in "$TP"/webp/src/dec/*.c "$TP"/webp/src/dsp/*.c "$TP"/webp/src/utils/*.c; do case "$(basename "$f")" in *enc*|*writer*|*quant_levels_utils*|*_sse*|*_msa*|*_mips*) continue;; esac
-    $CC $TPQ -DWEBP_REDUCE_CSP -I$TP/webp -c "$f" -o "$B/tp/webp_$(basename "${f%.c}").o"; done
+  for f in "$TP"/webp/src/dec/*.c "$TP"/webp/src/dsp/*.c "$TP"/webp/src/utils/*.c; do case "$(basename "$f")" in *enc*|*writer*|*quant_levels_utils*|*_msa*|*_mips*) continue;; *_sse*) [ "$T" = x86_64 ] || continue;; esac   # (x86_64: its SSE parts, chosen at run time)
+    WX=""; case "$(basename "$f")" in *_sse41*) WX="-msse4.1";; esac
+    $CC $TPQ $WX -DWEBP_REDUCE_CSP -I$TP/webp -c "$f" -o "$B/tp/webp_$(basename "${f%.c}").o"; done
   $AR rcs "$B/tp/libtp.a" "$B"/tp/*.o; fi
 if [ ! -f "$B/tp/libass.a" ]; then echo "== libass ($T)"
   for f in "$TP"/libass/libass/*.c "$TP"/libass/libass/c/*.c; do $CC -w $OPT -std=gnu11 -DHAVE_CONFIG_H -I$TP/config/libass -I$TP/libass/libass -I$TP/freetype/include -I$TP/harfbuzz/src -I$TP/fribidi/lib -I$TP/config/fribidi -c "$f" -o "$B/tp/ass/$(basename "${f%.c}").o"; done
