@@ -860,6 +860,7 @@ void app_open_external(const char *url, const char *name) {
 }
 void app_play(const Stream *s, const char *type, const char *id, const char *vid, int fromStart);
 void app_open_item(const Item *it) {
+  { extern int kids_open(const Item *it); if (kids_open(it)) return; } /* (Stremio Claude: a TMDB title, a platform, Surprise me) */
   if (!strcmp(it->type, "collection")) { DetailParams p; memset(&p, 0, sizeof p); p.it = *it; app_go(SCR_SIM, &p, 0); return; } /* a collection's card: its page (the Similar grid, its titles) */
   if (live_type(it->type)) { /* a channel: straight to a stream that sends a picture (All channels: its page) */
     if (!strcmp(it->id, LIVE_ALL_ID)) { hub_open(0, NULL); return; } /* the live hub */
@@ -1049,7 +1050,7 @@ void app_tick_behind(float dt) {
   player_tick(dt); /* (a phone's best stream, channel or trailer still starts) */
 }
 void app_tick(float dt) {
-  DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++; away_tick();
+  DT = dt; NOW = SDL_GetTicks() / 1000.0; FRAME++; { extern void kids_tick(float); kids_tick(dt); } /* (Stremio Claude: a child's daily limit and bedtime) */ away_tick();
   ptr_idle();
   ptr_frame();
   { static int swelled; if (app_hold_progress() > 0 && !swelled) { swelled = 1; sound_play(SND_HOLD); } else if (!okHold.down) swelled = 0; } /* holding OK: a low swell as the line starts round */

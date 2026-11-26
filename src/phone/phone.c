@@ -578,6 +578,7 @@ static void phone_play(const Stream *s, const char *type, const char *id, const 
   if (tvPlay) tvPlay(s, type, id, vid, fromStart);
 }
 void phone_register(void) {
+  { extern Screen phPlatform; app_register(SCR_PLATFORM, &phPlatform); } /* (Stremio Claude: a platform's page) */
   app_register(SCR_LOGIN, &phLogin); app_register(SCR_HOME, &phHome); app_register(SCR_DISC, &phDl); /* (the slot Discover had: Downloads) */ app_register(SCR_LIB, &phLib);
   app_register(SCR_DETAIL, &phDetail); { extern Screen simScreen; app_register(SCR_SIM, &simScreen); } app_register(SCR_SEARCH, &phSearch); app_register(SCR_SET, &phSet); { extern Screen phLive; app_register(SCR_LIVE, &phLive); } app_card_menu_hook = ph_menu_show;
   tvPlay = app_play_hook; app_play_hook = phone_play; cast_init(); /* (previews: the same on mobile data as on Wi-Fi; Settings says they use more data) */ { extern int prev_available(void); prev_available(); } /* (the preview library looked for at start: Settings' Previews row never comes in under a page being swiped) */

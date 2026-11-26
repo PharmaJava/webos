@@ -6,7 +6,7 @@
 #include "core/anim.h"
 #include "core/stremio.h"
 
-typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_LIVE, SCR_N } Scr; /* SCR_LIVE: All channels as a page of its own (a phone; a TV opens it over Home) */
+typedef enum { SCR_LOGIN = 0, SCR_HOME, SCR_DISC, SCR_LIB, SCR_DETAIL, SCR_SIM, SCR_SEARCH, SCR_SET, SCR_LIVE, SCR_PLATFORM, SCR_PROFILES, SCR_N } Scr; /* (Stremio Claude: a platform's page, the profiles) */ /* SCR_LIVE: All channels as a page of its own (a phone; a TV opens it over Home) */
 typedef struct {
   void (*enter)(const void *params);
   void (*leave)(void);

@@ -15,6 +15,7 @@ int         store_bool(const char *key, int def);
 cJSON      *store_node(const char *key);
 void        store_set_node(const char *key, cJSON *node);  /* takes ownership */
 void        store_remove(const char *key);
+void        store_remove_profile(int id);
 unsigned    store_serial(void);    /* bumps on every change: a value read once stays good while it holds */
 void        store_flush(void);     /* writes now if dirty */
 void        store_pump(void);      /* writes a little after the last change; call per frame */

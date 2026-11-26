@@ -64,6 +64,28 @@ float row_draw(const char *title, const ItemList *l, int wide, float y, Scroll *
   return top + ch + 36;
 }
 
+/* (Stremio Claude) the rank as Netflix shows it: a huge dark number with a grey outline beside the poster, under its edge */
+static void rank_num(int n, float x, float y, float w, float h) {
+  char t[4]; snprintf(t, sizeof t, "%d", n); int px = (int)(h * 1.1f); float edge = x + w, ty = y + h - px * 1.08f, sx = n >= 10 ? 0.34f : 0.56f;
+  gfx_scale_push(sx, 1, edge, y + h / 2); float ow = 3.0f / sx;
+  for (int k = 0; k < 16; k++) { float a = k * 0.3927f; text_draw(t, edge + cosf(a) * ow, ty + sinf(a) * 3.0f, px, 900, RGB(0x72, 0x72, 0x78), -px * 0.06f, 0, ALIGN_RIGHT); }
+  text_draw(t, edge, ty, px, 900, RGB(0x10, 0x10, 0x14), -px * 0.06f, 0, ALIGN_RIGHT); gfx_scale_pop(); }
+/* (Stremio Claude) a row of another kind: 0 posters, 1 wide, 2 round badges (the platforms, Surprise me), 3 Top 10 */
+float row_draw_kind(const char *title, const ItemList *l, int kind, float y, Scroll *s, int rowIdx, HitFn focus, int focusedIdx) {
+  if (kind <= 1) return row_draw(title, l, kind, y, s, rowIdx, focus, focusedIdx);
+  if (!l || l->n <= 0) return 0;
+  float d = 128, rk = POSTER_W * 0.5f, cw = kind == 2 ? d : rk + POSTER_W, ch = kind == 2 ? d + 46 : POSTER_H, gap = kind == 2 ? 24 : 10, top = 52;
+  if (y + top + ch < -10 || y > SB_H + 10) { scroll_tick(s); return top + ch + 36; }
+  text_draw(title, PAD, y + 6, F_H2 - 2, 800, TXT, -0.3f, SB_W - 2 * PAD, ALIGN_START);
+  s->max = l->n * (cw + gap) - gap + 2 * PAD - SB_W; scroll_tick(s); ph_drag(0, y + top, SB_W, ch + 8, s, 0);
+  for (int i = 0; i < l->n; i++) { float x = PAD + i * (cw + gap) - s->pos; if (x > SB_W || x + cw < 0) continue; const Item *it = &l->items[i];
+    if (kind == 2) { int pr = ph_pressed(x, y + top, d, d); float k = pr ? 0.94f : 1; gfx_scale_push(k, k, x + d / 2, y + top + d / 2); card_draw_round(it, x, y + top, d); gfx_scale_pop();
+      text_draw(it->name, x + d / 2, y + top + d + 10, F_SMALL, 600, WHITE_A(210), 0, d + 20, ALIGN_CENTER); hit_add(x, y + top, d, d + 40, focus, NULL, rowIdx, i); }
+    else { rank_num(i + 1, x, y + top, rk + POSTER_W * 0.06f, POSTER_H); int pr = ph_pressed(x + rk, y + top, POSTER_W, POSTER_H) || (focusedIdx == i && app_hold_progress() > 0);
+      card_at(it, x + rk, y + top, POSTER_W, POSTER_H, 0, 0, lift_key(l, i), pr); hit_add(x + rk, y + top, POSTER_W, POSTER_H, focus, NULL, rowIdx, i); } }
+  return top + ch + 36;
+}
+
 float poster_grid(const ItemList *l, float y, HitFn focus, int tag, int focusedIdx) {
   int cols = SB_W >= 1300 ? 6 : SB_W >= 1050 ? 5 : SB_W >= 860 ? 4 : 3; if (ph_tabw()) { int c = (int)((SB_W - 2 * PAD + 14) / (220 + 14) + 0.5f); cols = c > cols ? c : cols; } /* (a tablet sideways: posters of about 220, as many as fit) */ float gap = 14, w = (SB_W - 2 * PAD - gap * (cols - 1)) / cols, h = w * 1.5f; /* more across on a wider screen */
   float shift = 0; int lib = SCR == SCR_LIB; for (int i = 0; i < l->n; i++) { float lk = lib ? leave_k(&l->items[i], 1) : 0, f = i - shift; shift += lk; /* (a card going: the ones after slide back a place, along the grid) */

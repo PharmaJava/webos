@@ -34,6 +34,7 @@ static int feat_keep(const Item *it) { return it->id[0] && (it->background[0] ||
 static void feat_from_rows(Board *b) { /* the spotlight from Home's own catalogs: the first titles of its rows, in turn */
   if (F.n) return; int at[MAXR] = { 0 }, any = 1;
   while (F.n < NFEAT && any) { any = 0; for (int i = 0; i < b->n && F.n < NFEAT; i++) { HRow *r = &b->rows[i]; if (!r->got) continue; if (b->filter && strcmp(r->def.type, b->filter == 1 ? "series" : "movie")) continue; /* (Series or Movies chosen: only those) */
+      if (r->def.round) continue; /* (Stremio Claude: not the platforms' badges) */
       while (at[i] < r->list.n && !feat_keep(&r->list.items[at[i]])) at[i]++;
       if (at[i] < r->list.n) { const Item *c = &r->list.items[at[i]++]; int dup = 0; for (int k = 0; k < F.n; k++) if (!strcmp(F.it[k].id, c->id)) dup = 1; if (!dup) F.it[F.n++] = *c; any = 1; } } }
   if (F.n) { F.touchAt = app_now(); for (int i = 0; i < NFEAT; i++) tween_set(&F.dotW[i], i == 0 ? 34 : 12); } }
@@ -121,7 +122,7 @@ static void load(Board *b, int disc) {
   for (int i = 0; i < n; i++) { b->rows[i].def = defs[i]; b->rows[i].retries = 0; b->rows[i].retryAt = 0; sb_catalog(&b->rows[i].def, got_row, (void *)(uintptr_t)((disc << 24) | (i << 8) | (b->gen & 255))); }
   lib_rows(b); b->fr = -1; (void)disc; F.n = 0;
 }
-static const Item *hero_item(Board *b) { for (int i = 0; i < b->n; i++) if (b->rows[i].list.n > 0 && (b->filter == 0 || !strcmp(b->rows[i].def.type, b->filter == 1 ? "series" : "movie"))) { b->heroRow = i; return &b->rows[i].list.items[0]; } return NULL; }
+static const Item *hero_item(Board *b) { for (int i = 0; i < b->n; i++) if (b->rows[i].list.n > 0 && !b->rows[i].def.round && (b->filter == 0 || !strcmp(b->rows[i].def.type, b->filter == 1 ? "series" : "movie"))) { b->heroRow = i; return &b->rows[i].list.items[0]; } return NULL; }
 static const Item *focused_item(void) { Board *b = me(); if (b->fr == -5) return ph_live_band_item(b->fi); if (b->fr == -2) return b->cw.n > b->fi ? &b->cw.items[b->fi] : NULL; if (b->fr == -4) return b->up.n > b->fi ? &b->up.items[b->fi] : NULL; if (b->fr == -3) return hero_item(b); if (b->fr >= 0 && b->fr < b->n && b->fi < b->rows[b->fr].list.n) return &b->rows[b->fr].list.items[b->fi]; return NULL; }
 static void focus(int r, int i) { Board *b = me(); b->fr = r; b->fi = i; const Item *it = focused_item(); if (it) { accent_tint_fetch(it->id, it->poster, it->logo); ph_logo_ahead(it); } } /* the title's colour is on its way before its page opens */
 static void hero_act(int a, int b2) { (void)b2; Board *b = me(); const Item *it = hero_item(b); if (!it) return;
@@ -178,6 +179,8 @@ static void draw(void) {
     { static int fWas; if (fWas != b->filter) { fWas = b->filter; feat_switch(); } } /* (another choice: the spotlight's titles taken again, of that kind) */
     if (!F.n && (ready >= 2 || (total && ready == total))) feat_from_rows(b); y += feat_draw(y) + 24; } /* the spotlight across the top, from the first rows that came */
   float sk = b->sw.on ? ease_apply(EASE_OUT, timer_x(&b->sw)) : 1; gfx_opacity_push((0.3f + 0.7f * in) * (0.2f + 0.8f * sk)); gfx_offset_push(110 * b->swDir * (1 - sk), 0);
+  /* (Stremio Claude) the platforms first, as on LG: round badges, Surprise me among them */
+  for (int i = 0; i < b->n; i++) { HRow *r = &b->rows[i]; if (!r->def.round || !r->got || b->filter) continue; char t[200]; snprintf(t, sizeof t, "%s", T(r->def.title)); y += row_draw_kind(t, &r->list, 2, y, &r->s, i, focus, b->fr == i ? b->fi : -1); }
   { /* Continue Watching, always: with Series or Films picked, only that kind */
     static ItemList cwF; static int fKey = -1, fN = -1; static const Item *fP;
     if (fKey != b->filter || fN != b->cw.n || fP != b->cw.items) { fKey = b->filter; fN = b->cw.n; fP = b->cw.items; itemlist_clear(&cwF); cwF.items = calloc(b->cw.n ? b->cw.n : 1, sizeof(Item)); cwF.n = 0;
@@ -187,9 +190,10 @@ static void draw(void) {
   { static float upK = -1; if (b->filter != 2) y += row_draw_k(T("Upcoming episodes"), &b->up, 1, y, &b->ups, -4, focus, b->fr == -4 ? b->fi : -1, &upK); } /* the library's series airing in the next two weeks: wide cards as the TV's, the episode named on it and when it airs in a chip (Today, Tomorrow, In 3 days) */
   int waiting = 0;
   for (int i = 0; i < b->n; i++) { HRow *r = &b->rows[i]; b->lastY[i + 2] = y + b->v.pos - INS_T - 20;
+    if (r->def.round) continue; /* (drawn first, above) */
     if (b->filter && strcmp(r->def.type, b->filter == 1 ? "series" : "movie")) continue;
     if (!r->got) { waiting++; continue; }
-    char t[200]; snprintf(t, sizeof t, "%s", T(r->def.title)); y += row_draw(t, &r->list, 0, y, &r->s, i, focus, b->fr == i ? b->fi : -1); }
+    char t[200]; snprintf(t, sizeof t, "%s", T(r->def.title)); y += row_draw_kind(t, &r->list, r->def.top10 ? 3 : r->def.wide ? 1 : 0, y, &r->s, i, focus, b->fr == i ? b->fi : -1); }
   gfx_offset_pop();
   if (waiting) for (int k = 0; k < 2 && y < SB_H; k++) { ph_text(PAD, y + 10, 260, 1, F_H2 - 2, 40, ALIGN_START); for (int c = 0; c < 4; c++) ph_box(PAD + c * (POSTER_W + 14), y + 52, POSTER_W, POSTER_H, 14); y += 52 + POSTER_H + 36; }
   gfx_opacity_pop();

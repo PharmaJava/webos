@@ -114,6 +114,7 @@ void  ph_glass_off(void);
 void  ph_glass_grab(void);   /* the page drawn so far, blurred, for ph_glass (as the bar's pills) */
 void  ph_glass(float x, float y, float w, float h, float r, uint32_t tint); /* a shape of that glass (plain tint when there is none) */   /* the glass behind a page's top bar, k 0..1 */
 float row_draw(const char *title, const ItemList *l, int wide, float y, Scroll *s, int rowIdx, HitFn focus, int focusedIdx);
+float row_draw_kind(const char *title, const ItemList *l, int kind, float y, Scroll *s, int rowIdx, HitFn focus, int focusedIdx); /* (Stremio Claude) 0 posters, 1 wide, 2 round badges, 3 Top 10 */
 float row_draw_k(const char *title, const ItemList *l, int wide, float y, Scroll *s, int rowIdx, HitFn focus, int focusedIdx, float *k); /* the same, opening and closing as it fills and empties */
 void  card_at(const Item *it, float x, float y, float w, float h, int wide, int label, unsigned long long key, int pressed);
 int   button(float x, float y, float w, float h, const char *icon, const char *label, int kind, HitFn act, int a, int b); /* kind 0 glass, 1 accent, 2 white, 3 plain */
