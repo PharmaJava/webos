@@ -152,6 +152,33 @@ void sb_sync_addons(void (*cb)(int, void *), void *ud) {
   cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "authKey", ak); cJSON_AddBoolToObject(o, "update", 1); char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
   ChBox *x = malloc(sizeof *x); x->cb = cb; x->ud = ud; net_post_json(STREMIO_API "/api/addonCollectionGet", body, on_addons, x); free(body);
 }
+/* (Stremio Claude) the account's addon list changed here: sent back whole (addonCollectionSet), kept at once */
+static void on_set(int st, const unsigned char *b, size_t n, void *ud) { (void)b; (void)n; ChBox *x = ud; if (x->cb) x->cb(st == 200, x->ud); free(x); }
+static void addons_send(cJSON *list, void (*cb)(int, void *), void *ud) {
+  store_set_node("addons", list); store_flush(); adGenOk = 0;
+  const char *ak = sb_auth_key(); if (!ak) { if (cb) cb(1, ud); return; } /* signed out: kept on this device only */
+  cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "authKey", ak); cJSON_AddItemToObject(o, "addons", cJSON_Duplicate(sb_addons(), 1)); char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
+  ChBox *x = malloc(sizeof *x); x->cb = cb; x->ud = ud; net_post_json(STREMIO_API "/api/addonCollectionSet", body, on_set, x); free(body); }
+/* an addon added by its link (".../manifest.json", or "stremio://..."): its manifest fetched, the addon put last */
+static char addLastName[128];
+const char *sb_addon_last_name(void) { return addLastName; }
+typedef struct { void (*cb)(int, void *); void *ud; char url[SB_URL_MAX]; } AddBox;
+static void on_manifest(int st, const unsigned char *b, size_t n, void *ud) { (void)n; AddBox *x = ud; cJSON *m = st == 200 ? net_json(b) : NULL;
+  if (!m || !js_str(m, "id", NULL)) { net_json_free(m); if (x->cb) x->cb(0, x->ud); free(x); return; }
+  snprintf(addLastName, sizeof addLastName, "%s", js_str(m, "name", js_str(m, "id", "")));
+  cJSON *list = sb_addons() ? cJSON_Duplicate(sb_addons(), 1) : cJSON_CreateArray(); const cJSON *ad; int at = 0, dup = -1;
+  cJSON_ArrayForEach(ad, list) { if (!strcmp(js_str(ad, "transportUrl", ""), x->url)) dup = at; at++; } if (dup >= 0) cJSON_DeleteItemFromArray(list, dup);
+  cJSON *e = cJSON_CreateObject(); cJSON_AddStringToObject(e, "transportUrl", x->url); cJSON_AddStringToObject(e, "transportName", ""); cJSON_AddItemToObject(e, "manifest", cJSON_Duplicate(m, 1)); cJSON_AddItemToArray(list, e);
+  fprintf(stderr, "[addons] added by link: %s\n", addLastName);
+  net_json_free(m); addons_send(list, x->cb, x->ud); free(x); }
+int sb_addon_link_ok(const char *link) { const char *u = link; while (*u == ' ' || *u == '\n' || *u == '\t') u++;
+  return (!strncmp(u, "stremio://", 10) || !strncmp(u, "http://", 7) || !strncmp(u, "https://", 8)) && strstr(u, "manifest.json"); }
+void sb_addon_install(const char *link, void (*cb)(int ok, void *ud), void *ud) {
+  if (!sb_addon_link_ok(link)) { if (cb) cb(0, ud); return; }
+  AddBox *x = malloc(sizeof *x); x->cb = cb; x->ud = ud; const char *u = link; while (*u == ' ' || *u == '\n' || *u == '\t') u++;
+  if (!strncmp(u, "stremio://", 10)) snprintf(x->url, sizeof x->url, "https://%s", u + 10); else snprintf(x->url, sizeof x->url, "%s", u);
+  size_t l = strlen(x->url); while (l && (x->url[l - 1] == ' ' || x->url[l - 1] == '\n' || x->url[l - 1] == '\r')) x->url[--l] = 0;
+  net_get(x->url, on_manifest, x); }
 /* ---- catalogs ------------------------------------------------------------------------------ */
 static const char *type_label(const char *t) { return !strcmp(t, "movie") ? T("Movies") : !strcmp(t, "series") ? T("Series") : t; }
 static void def_url(CatalogDef *d) { snprintf(d->url, sizeof d->url, "%s%s%s.json", d->path, d->extra[0] ? "/" : "", d->extra); }

@@ -44,6 +44,10 @@ unsigned sb_lib_sync_age(void);        /* ms since the last library pull began (
 cJSON *sb_addons(void);                /* the installed addon list (array), including those off on this TV */
 int  sb_addon_on(const cJSON *addon);  /* not switched off on this TV ("adOn_<key>") */
 void sb_addon_key(const cJSON *addon, char *out, size_t cap);  /* its manifest id, or its URL */
+/* (Stremio Claude) an addon added by its link (https://.../manifest.json or stremio://...), put last on the account */
+void sb_addon_install(const char *link, void (*cb)(int ok, void *ud), void *ud);
+int  sb_addon_link_ok(const char *link);   /* looks like an addon link */
+const char *sb_addon_last_name(void);      /* the name of the last one added */
 
 /* ---- catalogs ---- */
 int  sb_home_defs(CatalogDef *out, int max);
