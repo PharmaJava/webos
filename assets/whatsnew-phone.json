@@ -1,6 +1,16 @@
 {
- "version": "1.1.0",
+ "version": "1.5.3",
  "items": [
+  {
+   "icon": "wn_new",
+   "title": "Stremio Claude on your phone",
+   "text": "Who's watching?, a child's profile with its PIN, platforms, Top 10, For you, premieres and Surprise me, as on the TV."
+  },
+  {
+   "icon": "wn_new",
+   "title": "Add an addon by its link",
+   "text": "Settings, Addons, Add an addon: copy its link and paste it. It goes to your Stremio account."
+  },
   {
    "icon": "wn_lib",
    "title": "Your addons",
