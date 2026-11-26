@@ -9,5 +9,7 @@
 "It is added to your Stremio account, so it shows on all your devices.": "Viene aggiunto al tuo account Stremio e compare su tutti i tuoi dispositivi.",
 "Add": "Aggiungi",
 "Sent. Look at your TV.": "Inviato. Guarda la TV.",
-"This isn’t an addon link (it ends in manifest.json).": "Questo non è un link di componente (finisce con manifest.json)."
+"This isn’t an addon link (it ends in manifest.json).": "Questo non è un link di componente (finisce con manifest.json).",
+"Add an addon by its link": "Aggiungi un componente dal suo link",
+"Settings, Addons, Add an addon: scan the code and paste the link on your phone. It goes to your Stremio account.": "Impostazioni, Componenti, Aggiungi un componente: scansiona il codice e incolla il link sul telefono. Va nel tuo account Stremio."
 }

@@ -1,6 +1,11 @@
 {
- "version": "1.5.2",
+ "version": "1.5.3",
  "items": [
+  {
+   "icon": "wn_new",
+   "title": "Add an addon by its link",
+   "text": "Settings, Addons, Add an addon: scan the code and paste the link on your phone. It goes to your Stremio account."
+  },
   {
    "icon": "wn_best",
    "title": "Stremio Origin 1.1.1 inside",

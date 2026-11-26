@@ -31,6 +31,7 @@
 - **For you** (1.5.0): recommendations from what each profile watched (finished counts most, then half-seen, then saved; the latest weigh more; what was watched is left out): *For you* and *Because you watched X* on Home, *Films / Series for you* in their tabs. Each profile learns on its own; a child's gets children's titles only.
 - **Over the film** (1.5.1): turning the Magic Remote's wheel brings the pointer out, with the controls; pressing the wheel clicks where it points (buttons, the time bar, Skip intro, the sources) and Back puts it away (Back again leaves the film). The sources tray stays on screen (its cards were cut on the left with many addons), an addon with no sources has no tab, and torrents that say they have no seeds are left out.
 - **The Library shows what you watched** (1.5.2): a film or series watched without adding it (Stremio keeps it as a temporary entry, with its progress and its watched mark) now shows under *In progress* and *Watched*. *All*, *Films*, *Series* and *Collections* still list only what you added, and nothing is added to your account's library.
+- **Add an addon by its link** (1.5.3): *Settings > Addons > Add an addon* shows a code; scan it and paste the addon's link on your phone (its `manifest.json`, or the `stremio://` link of an install button) and the TV adds it to your Stremio account, so it shows on all your devices. Several in a row; Back closes it. On the phone app: *Settings > Addons > Add an addon > Paste the link*.
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
@@ -87,6 +88,10 @@ the network, shows its sign-in screen and loads the torrent engine; video plays 
 conversion. Not tried on a real TV yet.
 Releases: `.github/workflows/android.yml` publishes `android-tv-v<version>` from `main`, signed with the `ORIGIN_KEYSTORE` /
 `ORIGIN_KEYSTORE_PASSWORD` secrets (without them it builds but publishes nothing: Android updates only an app signed with the same key).
+
+**Android phones and tablets:** the phone app (its own touch interface, from Stremio Origin's phone app) with the same extras as on the TV: profiles and a child's profile, the parental PIN, platforms, Top 10, For you, premieres, Surprise me, creating a Stremio account in the app, adding addons by link, downloads and the torrent engine. Install `stremio-claude-phone-<version>-arm64-v8a.apk` (or `-armeabi-v7a` for older phones) from the `phone-v*` release; it updates itself from there. Built from the `phone` branch (`.github/workflows/phone.yml`).
+
+**Samsung TVs (Tizen):** the same app as on LG, from Stremio Origin's Tizen build (the `samsung` branch, `tools/build-tpk.sh`). Install `stremio-claude-samsung-<version>.tpk` from the `samsung-v*` release with Apps2Samsung (it signs it for your TV); it updates itself from there. Not tried on a real TV yet.
 
 ## Privacy
 - Sign-in goes directly to Stremio. Your account stays on the TV.
