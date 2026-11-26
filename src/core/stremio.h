@@ -26,6 +26,7 @@ typedef struct { Item *items; int n; int total; /* total: the metas in the answe
 typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip, top10, round, wide; } CatalogDef;   /* top10 (Stremio Claude): the first ten, with their ranks */
 
 int  sb_init(void);
+int  sb_incognito(void);               /* Settings > Playback > Incognito mode: suppress watch history/progress/scrobbling */
 /* ---- account ---- */
 int  sb_signed_in(void);
 const char *sb_auth_key(void);
