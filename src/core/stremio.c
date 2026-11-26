@@ -6,6 +6,7 @@
 #include "core/scrobble.h"
 #include "core/traktrows.h"
 #include "core/kids.h"
+#include "core/best.h"
 #include "core/platforms.h"
 #include "core/tdisc.h"
 #include "core/traktwatch.h"
@@ -1109,7 +1110,8 @@ static void streams_answer(StreamPart *p, const cJSON *arr) {
   StreamReq *r = p->req; const cJSON *s;
   StreamGroup g; copy_str(g.name, sizeof g.name, p->name); int na = arr ? cJSON_GetArraySize(arr) : 0; if (!r->ans && na > 40) na = 40; /* the best-stream pick reads all of them, as the web does: a 4K-first addon lists its 1080p files late */
   g.items = calloc(na ? na : 1, sizeof(Stream)); g.n = 0;
-  if (arr) cJSON_ArrayForEach(s, arr) { if (g.n >= na) break; if (stream_parse(&g.items[g.n], s, p->name)) g.n++; }
+  int dead = 0; if (arr) cJSON_ArrayForEach(s, arr) { if (g.n >= na) break; if (stream_parse(&g.items[g.n], s, p->name)) { if (g.items[g.n].p2p && best_stream_seeds(&g.items[g.n]) == 0) { dead++; continue; } g.n++; } }
+  if (dead) fprintf(stderr, "[streams] %s: %d torrent(s) with no seeds left out\n", p->name, dead); /* (Stremio Claude: they never start, and only took room) */
   r->total += g.n; if (g.n) r->part(&g, p->idx, r->ud); else free(g.items);
 }
 static void stream_part_done(StreamPart *p) {

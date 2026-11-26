@@ -989,10 +989,11 @@ static void key_core(int k, int down, int repeat);
 #define PTR_ARROW_DIST 32
 #define PTR_ARROW_PAUSE 0.3
 static struct { int on; float x, y; Hit hv; int hasHv; float hx, hy; double movedAt; int down, downAct; Hit act; double okKeyAt, clickAt, wheelAt; int eatUp, eatOk, arrowHid; double arrowAt; int anchor; float ax, ay; double tremAt; int dirty; double activeAt; int tvHid, okPtr; } PTR;
+static int ptrFilm; /* (Stremio Claude) the pointer out over the film: the wheel brought it, Back puts it away */
 static void ptr_show(void) { PTR.arrowHid = 0; PTR.activeAt = NOW; if (PTR.tvHid) { PTR.tvHid = 0; plat_pointer_visible(1); } if (PTR.on) return; PTR.on = 1; PTR.hasHv = 0; }
 static void ptr_hide(void) { if (!PTR.on) return; PTR.on = 0; PTR.hasHv = 0; }
 static void ptr_put_away(void) { int was = PTR.on; ptr_hide(); if (was && !PTR.tvHid) { PTR.tvHid = 1; plat_pointer_visible(0); } } /* the TV's own pointer too, as its own apps do (the app's state alone left it on screen) */
-void app_pointer_rest(void) { if (PTR.on && !PTR.down) ptr_put_away(); } /* the film's controls faded by themselves: the pointer goes with them */
+void app_pointer_rest(void) { if (ptrFilm) return; if (PTR.on && !PTR.down) ptr_put_away(); } /* (out over the film by the wheel: it stays until Back) */ /* the film's controls faded by themselves: the pointer goes with them */
 #define PTR_IDLE 5.0 /* a hand held still this long: the pointer goes away, as on the TV's own screens */
 static void ptr_idle(void) { } /* Stremio Claude: a still hand keeps the pointer (only Back puts it away) */  /* (never while a press is held: a long press, the seek bar dragged) */
 static int ptr_tremor(double now) { if (!PTR.arrowHid) return 0; if (now - PTR.arrowAt < PTR_ARROW_WIN) return 1;
@@ -1015,20 +1016,22 @@ static void ptr_settle(double now) { if (!PTR.hasHv) return; const Hit *h = hit_
    for it: a hand resting on the remote moved the controls about) */
 static double ptrHushAt;
 static void ptr_hush(void) { PTR.on = 0; PTR.hasHv = 0; if (!PTR.tvHid || NOW - ptrHushAt > 1) { ptrHushAt = NOW; PTR.tvHid = 1; plat_pointer_visible(0); } }
-static void ptr_frame(void) { if (player_open()) { if (PTR.on) ptr_hush(); PTR.dirty = 0; return; } if (!PTR.on || !PTR.dirty) return; PTR.dirty = 0; double now = NOW;
+static void ptr_frame(void) { if (!player_open()) ptrFilm = 0; if (player_open()) { if (ptrFilm) { PTR.dirty = 0; return; } if (PTR.on) ptr_hush(); PTR.dirty = 0; return; } if (!PTR.on || !PTR.dirty) return; PTR.dirty = 0; double now = NOW;
   if (PTR.down) return; /* pressed: a hand's tremble must not move the press onto the next card */
   ptr_settle(now); const Hit *d = hit_at(PTR.x, PTR.y);
   if (topNav.active && !(d && d->nav)) ptr_nav_back();
   if (!d || !d->focus || (PTR.hasHv && hit_same(d, &PTR.hv))) return;
   if (PTR.movedAt && now - PTR.movedAt < PTR_SETTLE) { PTR.dirty = 1; return; } /* the page is still moving under the pointer */
   d->focus(d->a, d->b); ptr_keep(d); }
-void app_pointer_move(float x, float y) { if (x == PTR.x && y == PTR.y) return; PTR.x = x; PTR.y = y; if (player_open()) { ptr_hush(); return; } if (ptr_tremor(NOW)) return; ptr_show(); idle_touch_by("pointer moved"); PTR.dirty = 1; }
+void app_pointer_move(float x, float y) { if (x == PTR.x && y == PTR.y) return; PTR.x = x; PTR.y = y;
+  if (player_open()) { if (!ptrFilm) { ptr_hush(); return; } extern void player_ptr(int type, float x, float y); player_ptr(0, x, y); return; } /* (over the film: the controls follow it) */ if (ptr_tremor(NOW)) return; ptr_show(); idle_touch_by("pointer moved"); PTR.dirty = 1; }
 void app_pointer_button(int down, float x, float y) {
   double now = NOW; PTR.x = x; PTR.y = y;
   if (saver_on()) return; /* the screensaver covers the page: nothing under it is pressed */
   if (down) { ptr_show(); idle_touch();
     if (PTR.okKeyAt && now - PTR.okKeyAt < PTR_DEDUPE) { PTR.eatUp = 1; return; } /* the OK key of this same press came first */
     PTR.clickAt = now;
+    if (player_open() && ptrFilm) { extern void player_ptr(int type, float x, float y); PTR.down = 2; player_ptr(1, x, y); return; } /* (the pointer out over the film: a click where it points) */
     if (player_open()) { ptr_hush(); PTR.down = 4; key_core(K_OK, 1, 0); return; } /* playing: a click is OK */
     const Hit *d = hit_at(x, y); if (!d) return;
     if (d->act) { PTR.down = 3; PTR.act = *d; return; }
@@ -1043,8 +1046,9 @@ void app_pointer_button(int down, float x, float y) {
   const Hit *d = hit_at(x, y); if (d && hit_same(d, &PTR.act)) PTR.act.act(PTR.act.a, PTR.act.b); /* released on it: its own action */
 }
 /* the wheel = the Up/Down arrows (Left/Right for a sideways wheel), one per notch; it leaves the pointer out */
-void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; if (!player_open()) ptr_show(); if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(app_mirror_key(k), 1, 0); key_core(k, 0, 0); }
-void app_pointer_system(int show) { if (!show) return; if (player_open()) { ptr_hush(); return; } ptr_show(); } /* Stremio Claude: the TV says the remote moved: it comes back, after Back too; the TV's "hidden" is not followed */
+void app_pointer_wheel(float dx, float dy) { double now = NOW; if (saver_on()) return; if (!player_open()) ptr_show();
+  if (player_open()) { if (!ptrFilm) { ptrFilm = 1; PTR.on = 0; ptr_show(); extern void player_ptr(int type, float x, float y); player_ptr(0, PTR.x, PTR.y); fprintf(stderr, "[ptr] out over the film\n"); } return; } /* (Stremio Claude: the wheel over a film brings the pointer out) */ if (now - PTR.wheelAt < PTR_WHEEL || (!dx && !dy)) return; PTR.wheelAt = now; idle_touch(); int k = dy > 0 ? K_UP : dy < 0 ? K_DOWN : dx > 0 ? K_RIGHT : K_LEFT; key_core(app_mirror_key(k), 1, 0); key_core(k, 0, 0); }
+void app_pointer_system(int show) { if (!show) return; if (player_open()) { if (!ptrFilm) ptr_hush(); return; } ptr_show(); } /* Stremio Claude: the TV says the remote moved: it comes back, after Back too; the TV's "hidden" is not followed */
 void app_key(int k, int down, int repeat) {
   if (k == K_CURSOR_SHOW || k == K_CURSOR_HIDE) { if (down) app_pointer_system(k == K_CURSOR_SHOW); return; } /* a notice from the TV, not a key */
   if (k == K_INFO) { if (down && !repeat) { int on = strcmp(store_get("nerdStats", "false"), "true") != 0; store_set("nerdStats", on ? "true" : "false"); toast(on ? T("Stats for nerds on") : T("Stats for nerds off"), 1500, NULL); fprintf(stderr, "[app] Info: stats for nerds %s\n", on ? "on" : "off"); } return; } /* (the remote's Info key, wherever you are) */
@@ -1053,6 +1057,8 @@ void app_key(int k, int down, int repeat) {
   if (down && saver_on() && k != K_CURSOR_SHOW && k != K_CURSOR_HIDE) { saver_stop(); idle_touch(); if (k == K_OK) PTR.eatOk = 1; return; } /* the key that wakes the screensaver does nothing else */
   /* OK over a film with the pointer out is the pointer's click, where it points (the TV's norm): on a control it pressed
      play/pause instead, the key going to the film and not to what was under the pointer */
+  if (down && k == K_OK && !repeat && player_open() && ptrFilm) PTR.okPtr = 1; /* (Stremio Claude: over the film, the wheel pressed clicks where the pointer is) */
+  if (down && k == K_BACK && player_open() && ptrFilm) { ptrFilm = 0; ptr_put_away(); fprintf(stderr, "[ptr] put away over the film\n"); return; } /* (Back again leaves the film) */
   if (k == K_OK && PTR.okPtr) { /* (the pages already follow the pointer with their focus) */
     if (down && !repeat) { PTR.okKeyAt = 0; app_pointer_button(1, PTR.x, PTR.y); PTR.okKeyAt = NOW; PTR.okPtr = 1; }
     else if (!down) { PTR.okPtr = 0; app_pointer_button(0, PTR.x, PTR.y); }
