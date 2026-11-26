@@ -41,8 +41,35 @@ jobs:
     outputs:
       signed: ${{ steps.signed.outputs.signed }}
 
-  release:
+  emulator:
+    # the APKs opened on an emulator: the arm64 one a phone installs (run through the emulator's ARM translation) and the x86_64 one
     needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: phone-apk, path: dist }
+      - name: Let the emulator use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: tools/phone/smoke.sh dist/*-x86_64.apk x86_64; r1=$?; tools/phone/smoke.sh dist/*-arm64-v8a.apk arm64; r2=$?; exit $((r1 + r2))
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: phone-smoke, path: dist/smoke-*/ }
+
+  release:
+    needs: [build, emulator]
     if: needs.build.outputs.signed == '1' && github.event_name == 'workflow_dispatch'   # (published by hand, once a build is tried)
     runs-on: ubuntu-latest
     permissions:

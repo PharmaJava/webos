@@ -62,10 +62,12 @@ build() {
       (cd "$SRC" && "$GO" build -overlay "$OV/overlay.json" -buildmode=c-shared -trimpath \
         -ldflags "$LDX -extldflags=-Wl,-install_name,@rpath/libsbdl.dylib" -o "$OUT" ./sbdl)
       ;;
-    android-arm64|android-armv7)
+    android-arm64|android-armv7|android-x86_64)
       TC="$NDK/toolchains/llvm/prebuilt/$(host_tag)/bin"
       if [ "$1" = android-arm64 ]; then
         ABI=arm64-v8a; CC="$TC/aarch64-linux-android$API-clang"; set -- arm64 ""
+      elif [ "$1" = android-x86_64 ]; then
+        ABI=x86_64; CC="$TC/x86_64-linux-android$API-clang"; set -- amd64 ""
       else
         ABI=armeabi-v7a; CC="$TC/armv7a-linux-androideabi$API-clang"; set -- arm 7
       fi

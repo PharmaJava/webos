@@ -36,6 +36,7 @@ case "$TARGET" in
   mac)   ZT=""; OUT="$ROOT/build/mac/libsbengine.dylib"; SYS=Darwin; PROC=aarch64 ;;
   android-arm64) ABI=arm64-v8a; TRIPLE=aarch64-linux-android24; OUT="$ROOT/build/phone-$ABI/libsbengine.so" ;;
   android-armv7) ABI=armeabi-v7a; TRIPLE=armv7a-linux-androideabi24; OUT="$ROOT/build/phone-$ABI/libsbengine.so" ;;
+  android-x86_64) ABI=x86_64; TRIPLE=x86_64-linux-android24; OUT="$ROOT/build/phone-$ABI/libsbengine.so" ;;   # (emulators and Chromebooks)
   *) echo "unknown target $TARGET"; exit 1 ;;
 esac
 TC="$W/tc-$TARGET"; mkdir -p "$TC"
