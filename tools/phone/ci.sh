@@ -9,6 +9,8 @@ PRIV="$HOME/stremiobrew-build"; mkdir -p "$PRIV/src" "$PRIV/mac" "$PRIV/android/
 ln -sfn "$ANDROID_HOME" "$PRIV/android/sdk"
 export NDK="$ANDROID_HOME/ndk/27.2.12479018"
 get() { [ -f "$2" ] || curl -fsSL --retry 3 -o "$2" "$1"; }
+# the app's own keys from the environment (CI secrets), into the private file tools/phone/build.sh reads; never printed
+if [ -n "${TMDB_API_KEY:-}${TRAKT_CLIENT_ID:-}" ]; then ( umask 077; { [ -n "${TMDB_API_KEY:-}" ] && printf 'TMDB_API_KEY=%s\n' "$TMDB_API_KEY"; [ -n "${TRAKT_CLIENT_ID:-}" ] && printf 'TRAKT_CLIENT_ID=%s\n' "$TRAKT_CLIENT_ID"; true; } > "$PRIV/keys.env" ); fi
 get https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2 "$PRIV/src/mbedtls-3.6.2.tar.bz2"
 get https://curl.se/download/curl-8.11.1.tar.xz "$PRIV/src/curl-8.11.1.tar.xz"
 get https://github.com/libsdl-org/SDL/releases/download/release-2.30.12/SDL2-2.30.12.tar.gz "$PRIV/src/SDL2-2.30.12.tar.gz"

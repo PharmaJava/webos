@@ -18,8 +18,8 @@ android {
         applicationId 'app.stremioclaude.phone'   // (Stremio Claude: its own id, so it installs beside the official app)
         minSdk 24
         targetSdk 35
-        versionCode 10504 /* x*10000 + y*100 + z: always above the last (Stremio Claude 1.5.3, as on LG) */
-        versionName '1.5.4'
+        versionCode 10505 /* x*10000 + y*100 + z: always above the last (Stremio Claude 1.5.3, as on LG) */
+        versionName '1.5.5'
     }
 
     compileOptions {

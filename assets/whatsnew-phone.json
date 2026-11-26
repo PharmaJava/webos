@@ -1,6 +1,11 @@
 {
- "version": "1.5.4",
+ "version": "1.5.5",
  "items": [
+  {
+   "icon": "wn_new",
+   "title": "Netflix, Prime Video, HBO Max and more",
+   "text": "Home starts with your country’s platforms, each with its own page, as on the TV. For you and premieres too."
+  },
   {
    "icon": "wn_new",
    "title": "Incognito mode",
