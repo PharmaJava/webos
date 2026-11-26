@@ -4,7 +4,8 @@
 #define SB_PLATFORMS_H
 #include "core/stremio.h"
 typedef struct { int id; char name[96], logo[512]; } PlatformParams;
-int  platforms_row(CatalogDef *out);              /* Home's row of platforms (0 without a TMDB key) */
+int  platforms_row(CatalogDef *out);              /* Home's row of platforms (without a TMDB key: from the Streaming Catalogs addon) */
+int  platforms_offline_json(char *out, size_t cap); /* that row as TMDB would answer it; how many */
 int  platform_defs(CatalogDef *out, int max);
 int  premieres_rows(CatalogDef *out, int max);     /* Home's premieres: films coming to streaming, new series */     /* the open platform's rows */
 int  platform_open(const Item *it);               /* a "plat:" card: its page; 0 for any other */

@@ -31,6 +31,9 @@ const char *tmdb_orig_lang(const char *imdbId); /* the title's original language
 int  tmdb_call_any(const char *path, char *url, size_t ucap, char *hdr, size_t hcap); /* the same from any thread */
 int  tmdb_call(const char *path, char *url, size_t ucap, char *hdr, size_t hcap); /* (a path such as "/collection/10?language=fr"): its URL and header; 0 with no key */
 int  tmdb_builtin(void);            /* this build carries the app's own key: nobody needs to add one */
+/* (Stremio Claude) a key pasted in the app: checked on a thread; tmdb_key_result() -1 checking, 0 refused, 1 kept (once), -2 nothing asked */
+int  tmdb_key_try(const char *raw);
+int  tmdb_key_result(void);
 void tmdb_key_clear(void);            /* "Remove the TMDB key" */
 /* changes whenever lookups start again (a key added or removed, another language): screens drop what they
    applied */

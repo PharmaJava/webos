@@ -153,7 +153,7 @@ static int channel_twin(const char *nm) { return strstr(nm, "Channel") || strstr
 static void surprise_item(Item *it);
 static ItemList *parse_providers(cJSON *j) {
   const cJSON *res = js_arr(j, "results"), *x; ItemList *l = calloc(1, sizeof *l); l->items = calloc(16, sizeof(Item)); l->total = j ? 0 : -1;
-  if (!res) return l; surprise_item(&l->items[l->n++]); /* (Surprise me, first among the platforms) */ char reg[8], lang[24]; place(lang, sizeof lang, reg, sizeof reg);
+  if (!res) return l; if (tmdb_has_key()) surprise_item(&l->items[l->n++]); /* (Surprise me, first among the platforms: it needs TMDB) */ char reg[8], lang[24]; place(lang, sizeof lang, reg, sizeof reg);
   for (int pass = 0; pass < 2; pass++) for (size_t f = 0; f < (pass ? 999 : sizeof FAMOUS / sizeof FAMOUS[0]) && l->n < 15; f++) {
     const cJSON *pick = NULL; int best = 1 << 30;
     cJSON_ArrayForEach(x, res) { int id = (int)js_num(x, "provider_id", 0); const char *nm = js_str(x, "provider_name", ""), *lp = js_str(x, "logo_path", ""); if (!id || !*nm || !*lp) continue;
@@ -312,6 +312,9 @@ void kids_fetch(const char *url, const char *type, int n, void (*cb)(ItemList *,
 }
 void kids_page(const char *url, const char *type, int skip, void (*cb)(ItemList *, int, void *), void *ud) {
   KReq *r = calloc(1, sizeof *r); snprintf(r->type, sizeof r->type, "%s", type); r->max = 40; r->pcb = cb; r->ud = ud;
+  if (!strcmp(url + sizeof PFX - 1, "o/")) { /* (Stremio Claude) the platforms without a TMDB key: the table, written and read back (answered on a later frame) */
+    extern int platforms_offline_json(char *out, size_t cap); char js[3000], fp[1300]; platforms_offline_json(js, sizeof js); snprintf(fp, sizeof fp, "%s/platforms-offline.json", plat_data_dir());
+    FILE *f = fopen(fp, "w"); if (f) { fputs(js, f); fclose(f); } if (!f || !net_file(fp, on_page, r)) { free(r); cb(NULL, 0, ud); } return; }
   char path[600]; const char *p = tmdb_path(url, &r->filter); snprintf(path, sizeof path, "%s&page=%d", p, skip / 20 + 1);
   if (!tmdb_request(path, on_page, r)) { free(r); cb(NULL, 0, ud); }
 }

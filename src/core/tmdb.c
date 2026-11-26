@@ -99,6 +99,15 @@ static int key_from_phone(const char *raw) {
   return 1;
 }
 
+/* (Stremio Claude) the phone app: a key pasted in the app itself, checked against TMDB on a thread of its own */
+static volatile int tryRes = -2; /* -2 nothing asked, -1 checking, 0 refused, 1 kept */
+static void *try_main(void *arg) { char *k = arg; int ok = key_from_phone(k); free(k); tryRes = ok; return NULL; }
+int tmdb_key_try(const char *raw) {
+  if (tryRes == -1 || !raw) return 0; if (!inited) tmdb_init();
+  char *k = strdup(raw); if (!k) return 0; tryRes = -1; pthread_t t;
+  if (pthread_create(&t, NULL, try_main, k)) { free(k); tryRes = 0; return 0; } pthread_detach(t); return 1; }
+int tmdb_key_result(void) { int r = tryRes; if (r >= 0) { tryRes = -2; drain(); } return r; }
+
 /* ---- the work queue ------------------------------------------------------------------------------ */
 enum { E_OK = 0, E_BADKEY, E_NET };
 typedef struct Job { struct Job *next; char type[8], id[16], lang[8], key[420]; int light, err; unsigned gen; Loc *v; int none; } Job;
