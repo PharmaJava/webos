@@ -147,6 +147,8 @@ static void where_dump(const char *tag, void *uc, void *addr) {
   ucontext_t *u = uc;
 #if defined(__aarch64__)
   where_core(tag, u->uc_mcontext.pc, u->uc_mcontext.regs[30], u->uc_mcontext.sp, addr);
+#elif defined(__x86_64__)
+  where_core(tag, u->uc_mcontext.gregs[REG_RIP], 0, u->uc_mcontext.gregs[REG_RSP], addr); /* (x86_64: emulators, Chromebooks) */
 #else
   where_core(tag, u->uc_mcontext.arm_pc, u->uc_mcontext.arm_lr, u->uc_mcontext.arm_sp, addr);
 #endif
