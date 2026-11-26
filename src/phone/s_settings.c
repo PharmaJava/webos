@@ -95,8 +95,9 @@ static float row_base(float y, const char *icon, uint32_t tint, const char *labe
 static void nav_row(float y, const char *icon, uint32_t tint, const char *label, const char *sub, int page) { rres = 80; row_base(y, icon, tint, label, sub, RH); icon_draw("ph_chev", gx + gw - 26 - 32, y + RH / 2 - 16, 32, WHITE_A(100)); hit_act(gx, y, gw, RH, page_act, page, 0); }
 /* a switch: the key holds "true" / "false" */
 static const char *swKeys[16]; static int nsw;
-static void sw_act(int i, int b) { (void)b; const char *k = swKeys[i]; int def = strcmp(k, "nerdStats") != 0 && strcmp(k, "dlWifi") != 0 && strcmp(k, "seekPreviewsTorrent") != 0; /* (the ones off unless switched on) */ store_set(k, store_bool(k, def) ? "false" : "true"); if (!strcmp(k, "accent")) accent_apply(); if (!strcmp(k, "dlHdr")) store_set("dlQuality", "custom");
-  if (!strcmp(k, "traktRows") || !strcmp(k, "traktMarks") || !strcmp(k, "traktCw")) board_invalidate(); } /* (Trakt's rows, marks and pauses come and go on Home) */
+static void sw_act(int i, int b) { (void)b; const char *k = swKeys[i]; int def = strcmp(k, "nerdStats") != 0 && strcmp(k, "dlWifi") != 0 && strcmp(k, "seekPreviewsTorrent") != 0 && strcmp(k, "incognito") != 0; /* (the ones off unless switched on) */ store_set(k, store_bool(k, def) ? "false" : "true"); if (!strcmp(k, "accent")) accent_apply(); if (!strcmp(k, "dlHdr")) store_set("dlQuality", "custom");
+  if (!strcmp(k, "traktRows") || !strcmp(k, "traktMarks") || !strcmp(k, "traktCw")) board_invalidate();
+  if (!strcmp(k, "incognito")) toast(sb_incognito() ? T("Incognito mode on â watch history paused") : T("Incognito mode off"), 2400, NULL); } /* (Stremio Claude, from Stremio Origin #125) */ /* (Trakt's rows, marks and pauses come and go on Home) */
 static void sw_row(float y, const char *label, const char *sub, const char *key, int def) { rres = 124; row_base(y, NULL, 0, label, sub, RH); switch_draw(gx + gw - 26 - 82, y + RH / 2 - 23, store_bool(key, def)); if (nsw < 16) { swKeys[nsw] = key; hit_act(gx, y, gw, RH, sw_act, nsw, 0); nsw++; } }
 /* a choice among options: a sheet */
 static const char *chKeys[16]; static const Opt *chOpts[16]; static int chN[16], nch;
@@ -436,6 +437,7 @@ static float page_body(int pg, float y, const char **titleOut) { const char *tit
       double mb = best_net_mbps(); char cs[120] = ""; if (mb > 0) { char n[16]; snprintf(n, sizeof n, "%.0f", mb); snprintf(cs, sizeof cs, "%s", T1("Your connection: {n} Mbps. Play now starts the best stream", "n", n)); }
       grp(y, 1); sw_row(y, T("Play the best stream automatically"), cs[0] ? cs : T("Chosen by itself when a film starts"), "autoBest", 1); y = grp_end();
       y = soft_hint(y, !store_bool("autoBest", 1), T("The app picks the best stream for you, using your languages and your connection."), 0); /* (off: what it would do, briefly) */
+      grp(y, 1); sw_row(y, T("Incognito mode"), T("Watch without saving progress, Continue Watching, or Trakt history"), "incognito", 0); y = grp_end(); /* (Stremio Claude, from Stremio Origin #125) */
       int pv = prev_available() || getenv("SB_PVFAKE"); /* (the seek previews: only where this app carries their decoder) */
       int pvt = pv && store_bool("seekPreviews", 1); /* (its torrent switch: a part of it, opening under it while it is on) */
       static Tween tsub, tlim; static int tSeen; int limOn = pvt && store_bool("seekPreviewsTorrent", 0); if (!tSeen) { tSeen = 1; tween_set(&tsub, pvt); tween_set(&tlim, limOn); }
