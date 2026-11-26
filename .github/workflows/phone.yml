@@ -92,3 +92,14 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then echo "$tag is already published: left as it is" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           gh release create "$tag" dist/*.apk dist/SHA256SUMS --latest=false --target phone --title "Stremio Claude $ver for Android phones and tablets" \
             --notes "Stremio Claude for Android phones and tablets: your Stremio account and addons, torrents and downloads. Take the arm64-v8a file (nearly every phone since 2017; armeabi-v7a only for very old ones), open it and allow installs from this source when Android asks. No Stremio account yet? Create it inside the app. It installs beside the official app and updates itself from here."
+      - name: The stable links (pharmajava.github.io/webos/phone/ and phone/x86_64/) to this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android-phone/app/build.gradle | head -1)
+          git fetch -q origin gh-pages && git worktree add -q "$RUNNER_TEMP/pages" origin/gh-pages
+          tools/phone/latest-page.sh "$ver" arm64-v8a "$RUNNER_TEMP/pages/phone/index.html"
+          tools/phone/latest-page.sh "$ver" arm64-v8a "$RUNNER_TEMP/pages/phone/arm64-v8a/index.html"
+          tools/phone/latest-page.sh "$ver" armeabi-v7a "$RUNNER_TEMP/pages/phone/armeabi-v7a/index.html"
+          tools/phone/latest-page.sh "$ver" x86_64 "$RUNNER_TEMP/pages/phone/x86_64/index.html"
+          cd "$RUNNER_TEMP/pages" && git add phone && git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Phone: the stable links to $ver" && git push -q origin HEAD:gh-pages || echo "the links already point to $ver"
