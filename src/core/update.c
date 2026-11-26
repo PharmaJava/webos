@@ -36,7 +36,10 @@
 #ifndef SB_PKG_PREFIX
 #define SB_PKG_PREFIX SB_APP_ID "_" /* a release file's name before its version (tools/build.sh may set another per target) */
 #endif
-#define UPD_GH "https://api.github.com/repos/stremio-origin/" SB_REPO "/releases?per_page=8"
+#ifndef SB_OWNER
+#define SB_OWNER "stremio-origin"
+#endif
+#define UPD_GH "https://api.github.com/repos/" SB_OWNER "/" SB_REPO "/releases?per_page=30" /* (Stremio Claude: our releases, the phone's among the TV's) */
 #define UPD_MAN "https://stremio-origin.github.io/" SB_REPO "/api/apps/" SB_APP_ID "/manifest.json"
 typedef struct { char ver[24], url[512], sha[72]; char notes[5][256]; int nnotes; } Rel;
 static struct {

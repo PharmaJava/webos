@@ -413,26 +413,30 @@ static const Item *q_focused(void) { return Q.fr >= 0 && Q.fr < Q.nd && Q.fi < Q
 Screen phSearch = { q_enter, q_leave, q_key, q_tick, q_draw, q_focused, NULL, q_text, NULL };
 
 /* ---- sign-in ---- */
-static struct { char email[128], pass[128]; int field, busy, errF; double errAt; char err[200]; } G; /* errF: where the error shows: 0 under Email, 1 under Password, 2 under Continue */
+static struct { char email[128], pass[128]; int field, busy, errF, make; double errAt; char err[200]; } G; /* make: (Stremio Claude) a new account, not a sign-in */ /* errF: where the error shows: 0 under Email, 1 under Password, 2 under Continue */
 static void on_lib(int changed, void *ud) { (void)changed; (void)ud; app_refresh_boards(); }
 static void on_addons(int changed, void *ud) { (void)changed; (void)ud; }
 static void g_error(int f, const char *msg) { G.errF = f; G.errAt = app_now(); snprintf(G.err, sizeof G.err, "%s", msg); pplat_haptic_k(HK_THUD, 1); }
 static int has(const char *s, const char *w) { for (; s && *s; s++) if (!strncasecmp(s, w, strlen(w))) return 1; return 0; }
 static void on_login(int ok, const char *err, void *ud) { (void)ud; G.busy = 0;
   if (!ok) { if (has(err, "No connection")) g_error(2, T("No connection. Check your internet and try again."));
+    else if (G.make && (has(err, "exist") || has(err, "taken") || has(err, "already"))) g_error(0, T("There is already an account with this email: sign in instead"));
+    else if (G.make && has(err, "pass")) g_error(1, T("Choose a longer password"));
     else if (has(err, "pass")) g_error(1, T("Wrong password"));
     else if (has(err, "user") || has(err, "email") || has(err, "found")) g_error(0, T("No account with this email"));
     else g_error(2, err && *err ? err : T("Could not sign in. Try again.")); return; }
   phone_keyboard(0); if (!store_node("lib") || !cJSON_GetArraySize(store_node("lib"))) { store_set("accent", "logo"); accent_apply(); } /* an account signed in: its colours from each title's logo, to begin with */ sb_sync_addons(on_addons, NULL); sb_pull_library(on_lib, NULL); app_go(SCR_HOME, NULL, 1); }
 static void go_act(int a, int b) { (void)b; if (a == 1) { phone_keyboard(0); app_go(SCR_HOME, NULL, 1); return; } if (G.busy) return; G.err[0] = 0;
   { const char *at = strchr(G.email, '@'); if (!G.email[0]) { g_error(0, T("Enter your email")); return; } if (!at || at == G.email || !strchr(at, '.')) { g_error(0, T("That email doesn\u2019t look right")); return; } }
-  if (!G.pass[0]) { g_error(1, T("Enter your password")); return; } G.busy = 1; phone_keyboard(0); sb_login(G.email, G.pass, on_login, NULL); }
+  if (!G.pass[0]) { g_error(1, T("Enter your password")); return; }
+  if (G.make && strlen(G.pass) < 6) { g_error(1, T("Choose a longer password")); return; }
+  G.busy = 1; phone_keyboard(0); if (G.make) sb_register(G.email, G.pass, on_login, NULL); else sb_login(G.email, G.pass, on_login, NULL); }
 static TEd gE, gP; static TEd *g_ed(void) { if (!gE.s) { gE.s = G.email; gE.cap = sizeof G.email; gE.lower = 1; gP.s = G.pass; gP.cap = sizeof G.pass; } return G.field ? &gP : &gE; }
 static void field2_act(int a, int b) { (void)b; G.field = a; phone_keyboard(1); }
 static void g_text(const char *t) { char *f = G.field ? G.pass : G.email; if (G.err[0] && (G.errF == G.field || G.errF == 2)) G.err[0] = 0; /* typing again: it goes */ (void)f; ted_insert(g_ed(), t); }
 static Orbs gOrbs; static double gT0;
 static void g_enter(const void *p) { (void)p; bg_clear(); if (!G.email[0]) { const char *em = js_str(store_node("user"), "email", ""); if (*em) { snprintf(G.email, sizeof G.email, "%s", em); G.field = 1; } } /* (signed in before: its email already there) */ G.busy = 0; memset(&gOrbs, 0, sizeof gOrbs); orbs_place(&gOrbs, 0, 2.2f); gT0 = app_now(); }
-static void link_act(int a, int b) { (void)b; phone_keyboard(0); pplat_open_url(a ? "https://www.strem.io/reset-password/" : "https://web.stremio.com/#/intro?form=sign-up"); }
+static void link_act(int a, int b) { (void)b; phone_keyboard(0); if (a) { pplat_open_url("https://www.strem.io/reset-password/"); return; } G.make = !G.make; G.err[0] = 0; } /* (Stremio Claude: an account is made here) */
 void ph_liquid_bubble(float x, float y, float w, float h, float r, float press); void ph_glass_grab_liquid(void);
 /* a field as a line: its words over a hairline that turns the accent while typing in it */
 /* an error under its place: a red dot and a short line, coming in; returns the room it takes */
@@ -464,31 +468,32 @@ static void g_draw(void) {
   float kb = clampf(KB_H / (SB_H * 0.3f), 0, 1), y = INS_T + SB_H * 0.1f * (1 - kb) + 24 * kb; /* the keyboard up: the mark goes to the top, still there */
   gfx_opacity_push(in);
   /* the mark: the play sign and the name on a bubble of the bar's liquid glass, hugging them */
-  { float h = 92, ic = 52, tw = text_width("ORIGIN", 30, 800, 12), w = 30 + ic + 18 + tw + 30 - 12, x = X - 6; gfx_offset_push(0, 16 * (1 - in));
+  { float h = 92, ic = 52, tw = text_width("CLAUDE", 30, 800, 12), w = 30 + ic + 18 + tw + 30 - 12, x = X - 6; gfx_offset_push(0, 16 * (1 - in));
     ph_liquid_bubble(x, y, w, h, h / 2, 0);
     gfx_rrect_v(x + 30, y + (h - ic) / 2, ic, ic, ic / 2, RGB(0x6a, 0x45, 0xe0), RGB(0x2f, 0x1a, 0x9e)); { float S = ic * 512 / 264.0f, cx = x + 30 + ic / 2, cy = y + h / 2; icon_draw("o_play", cx - S * 256 / 512, cy - S * 226 / 512, S, WHITE_A(255)); }
-    text_draw("ORIGIN", x + 30 + ic + 18, y + h / 2 - text_line_height(30) / 2.0f, 30, 800, WHITE_A(250), 12, 0, ALIGN_LEFT); gfx_offset_pop(); y += h + SB_H * 0.07f * (1 - kb) + 36 * kb;
+    text_draw("CLAUDE", x + 30 + ic + 18, y + h / 2 - text_line_height(30) / 2.0f, 30, 800, WHITE_A(250), 12, 0, ALIGN_LEFT); gfx_offset_pop(); y += h + SB_H * 0.07f * (1 - kb) + 36 * kb;
     if (KB_H > 0) { float need = 96 + 84 + 108 + 128 + 84 + (G.err[0] ? 60 : 0), over = y + need - (SB_H - KB_H - 24); if (over > 0) y -= over; } } /* the rest above the keyboard (under the mark if it must) */
   { float k = ease_apply(EASE_OUT, (t - 0.08f) / 0.7f); gfx_offset_push(0, 22 * (1 - k));
-    text_draw(T("Sign in"), X, y, 76, 800, WHITE_A(255), -2.2f, W, ALIGN_START); y += 96;
-    text_draw(T("Use your Stremio account"), X, y, F_BODY, 500, TXT2, 0, W, ALIGN_START); y += 84; gfx_offset_pop(); }
+    text_draw(G.make ? T("Create account") : T("Sign in"), X, y, 76, 800, WHITE_A(255), -2.2f, W, ALIGN_START); y += 96;
+    text_draw(G.make ? T("A free Stremio account, for this app and every other") : T("Use your Stremio account"), X, y, F_BODY, 500, TXT2, 0, W, ALIGN_START); y += 84; gfx_offset_pop(); }
   { float k = ease_apply(EASE_OUT, (t - 0.16f) / 0.7f); gfx_offset_push(0, 22 * (1 - k));
     static float rm[2] = { 24, 44 }; float er = 12 + text_line_height(F_SMALL) + 4 + 14; /* the room under a field opens for its error, smoothly */
     for (int i = 0; i < 2; i++) { float tg = G.err[0] && G.errF == i ? er + (i ? 20 : 0) : (i ? 44 : 24); rm[i] += (tg - rm[i]) * clampf(phDt * 16, 0, 1); }
     g_field(X, y, W, G.email, T("Email"), typing && G.field == 0, 0, 0); y += 84; if (G.err[0] && G.errF == 0) g_err_line(X, y + 12, W); y += rm[0];
     g_field(X, y, W, G.pass, T("Password"), typing && G.field == 1, 1, 1); y += 84; if (G.err[0] && G.errF == 1) g_err_line(X, y + 12, W); y += rm[1];
     /* Sign in: a pill hugging its words, at the end of the line; Forgot password at its start */
-    { int ok = G.email[0] && G.pass[0]; const char *lb = G.busy ? T("Signing in…") : T("Continue"); float h = 84, tw = text_width(lb, F_BODY + 1, 750, 0), w = 40 + tw + 14 + 30 + 34, x = X + W - w; float pk = press_k(x, y, w, h);
+    { int ok = G.email[0] && G.pass[0]; const char *lb = G.busy ? (G.make ? T("Creating…") : T("Signing in…")) : G.make ? T("Create") : T("Continue"); float h = 84, tw = text_width(lb, F_BODY + 1, 750, 0), w = 40 + tw + 14 + 30 + 34, x = X + W - w; float pk = press_k(x, y, w, h);
       gfx_scale_push(1 - 0.04f * pk, 1 - 0.04f * pk, x + w / 2, y + h / 2);
       ph_liquid_bubble(x, y, w, h, h / 2, pk); if (ok) gfx_rrect(x, y, w, h, h / 2, col_alpha(0xff7a4cf5u, 0.5f)); /* the bar's glass; lit, the accent inside it, as the bar's lit pills */
       text_draw(lb, x + 40, y + h / 2 - text_line_height(F_BODY + 1) / 2.0f, F_BODY + 1, 750, WHITE_A(ok ? 255 : 140), 0, 0, ALIGN_LEFT);
       if (G.busy) spinner(x + w - 34 - 15, y + h / 2, 13); else icon_draw("ph_chev", x + w - 34 - 30, y + h / 2 - 15, 30, WHITE_A(ok ? 255 : 140));
       gfx_scale_pop(); hit_act(x, y, w, h, go_act, 0, 0);
-      g_link(X, y + 12, T("Forgot password?"), F_SMALL, ALIGN_START, link_act, 1);
+      if (G.make) text_draw_wrapped(T("By creating it you accept Stremio’s terms and privacy policy."), X, y + h + 18, W, 2, F_SMALL, 500, TXT2, 0, ALIGN_START, text_line_height(F_SMALL) + 4);
+      else g_link(X, y + 12, T("Forgot password?"), F_SMALL, ALIGN_START, link_act, 1);
       if (G.err[0] && G.errF == 2) g_err_line(X, y + h + 24, W); }
     gfx_offset_pop(); }
   if (!typing) { float ly = SB_H - INS_B - 60 - 36; gfx_rect(X, ly - 22, W, 1, WHITE_A(22));
-    g_link(X, ly, T("Create account"), F_SMALL, ALIGN_START, link_act, 0); g_link(X + W, ly, T("Not now"), F_SMALL, ALIGN_END, go_act, 1); }
+    g_link(X, ly, G.make ? T("I already have an account") : T("Create account"), F_SMALL, ALIGN_START, link_act, 0); g_link(X + W, ly, T("Not now"), F_SMALL, ALIGN_END, go_act, 1); }
   gfx_opacity_pop();
 }
 static int g_key(int k) { char *f = G.field ? G.pass : G.email;

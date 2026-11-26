@@ -29,6 +29,7 @@ const char *sb_user_email(void);
 const char *sb_user_id(void);
 typedef void (*SbCb)(int ok, const char *err, void *ud);
 void sb_login(const char *email, const char *password, SbCb cb, void *ud);
+void sb_register(const char *email, const char *password, SbCb cb, void *ud); /* (Stremio Claude) a new Stremio account, signed in when made */
 void sb_finish_login(const char *authKey, SbCb cb, void *ud);   /* QR sign-in: fetches the user */
 void sb_logout(void);
 void sb_forget_local(void);   /* this TV signs out (its kept account, addons, library), the session itself left alone */

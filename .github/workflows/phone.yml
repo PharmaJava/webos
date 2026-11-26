@@ -1,0 +1,63 @@
+# Stremio Claude for Android phones and tablets (the phone branch): both processors' APKs, the torrent and download engines inside,
+# signed with the release key (the ORIGIN_KEYSTORE secret, the same as the Android TV build). Pushed to the phone branch (or by hand),
+# a version not yet published goes out as "phone-v<version>" (never the repository's Latest: that is the LG package).
+name: Android phone
+on:
+  push:
+    branches: [phone]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.11.1' }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.23' }
+      - name: NDK, cmake, ninja
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" "cmake;3.22.1" > /dev/null
+          sudo apt-get install -y -qq ninja-build > /dev/null
+      - name: The signing key
+        env:
+          KEYSTORE: ${{ secrets.ORIGIN_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/origin.keystore"; echo "PHONE_KEYSTORE=$RUNNER_TEMP/origin.keystore" >> "$GITHUB_ENV"
+          else echo "No ORIGIN_KEYSTORE secret: debug key (not published)" | tee -a "$GITHUB_STEP_SUMMARY"; fi
+      - name: Build the APKs
+        env:
+          PHONE_KEYSTORE_PASSWORD: ${{ secrets.ORIGIN_KEYSTORE_PASSWORD }}
+        run: GRADLE=gradle tools/phone/ci.sh
+      - id: signed
+        run: echo "signed=${PHONE_KEYSTORE:+1}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with: { name: phone-apk, path: dist/*.apk }
+    outputs:
+      signed: ${{ steps.signed.outputs.signed }}
+
+  release:
+    needs: build
+    if: needs.build.outputs.signed == '1'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: phone-apk, path: dist }
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" android-phone/app/build.gradle | head -1)
+          tag="phone-v$ver"
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+          if gh release view "$tag" >/dev/null 2>&1; then echo "$tag is already published: left as it is" | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          gh release create "$tag" dist/*.apk dist/SHA256SUMS --latest=false --target phone --title "Stremio Claude $ver for Android phones and tablets" \
+            --notes "Stremio Claude for Android phones and tablets: your Stremio account and addons, torrents and downloads. Take the arm64-v8a file (nearly every phone since 2017; armeabi-v7a only for very old ones), open it and allow installs from this source when Android asks. No Stremio account yet? Create it inside the app. It installs beside the official app and updates itself from here."

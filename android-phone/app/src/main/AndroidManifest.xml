@@ -28,7 +28,7 @@
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
     <application
-        android:label="Stremio Origin"
+        android:label="Stremio Claude"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:usesCleartextTraffic="true"
@@ -55,7 +55,7 @@
         <!-- playing on a TV: its controls in a media notification and on the lock screen -->
         <service android:name=".CastService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <!-- the downloaded update, read by the system's installer (ApkProvider) -->
-        <provider android:name="app.stremioorigin.phone.ApkProvider" android:authorities="app.stremioorigin.phone.apk" android:exported="false" android:grantUriPermissions="true" />
+        <provider android:name="app.stremioorigin.phone.ApkProvider" android:authorities="app.stremioclaude.phone.apk" android:exported="false" android:grantUriPermissions="true" />
         <!-- the app opens again after an update it started itself (UpdatedReceiver) -->
         <receiver android:name="app.stremioorigin.phone.UpdatedReceiver" android:exported="false">
             <intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>

@@ -273,7 +273,7 @@ public class MainActivity extends SDLActivity {
          opens the app from the "my package was replaced" broadcast (kept to updates this app started: update.reopen);
        - Android 10 and up otherwise (an app in the back may not open a screen; the installer's answer is refused too,
          measured on Android 12): the system's install screen, which ends on Open. */
-    static final String INSTALL_STATUS = "app.stremioorigin.phone.INSTALL_STATUS";
+    static final String INSTALL_STATUS = "app.stremioclaude.phone.INSTALL_STATUS";
     private static void install(final MainActivity a, File apk) throws IOException {
         if (Build.VERSION.SDK_INT >= 29 && !android.provider.Settings.canDrawOverlays(a)) {
             android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_INSTALL_PACKAGE)

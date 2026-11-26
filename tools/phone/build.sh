@@ -15,9 +15,9 @@ case "$T" in
     TFLAGS="-DSB_MAC=1 -I$MACSDL/include -I$MACSDL/include/SDL2"; LIBS="$($MACSDL/bin/sdl2-config --static-libs) -Wl,-framework,OpenGL -Wl,-framework,AVFoundation -Wl,-framework,CoreMedia -Wl,-framework,CoreVideo -Wl,-framework,Foundation -Wl,-framework,QuartzCore -lcurl -liconv -lz"   # (AVFoundation: the preview plays the streams)
     PLATSRC="$ROOT/src/platform/mac/plat_mac.c $ROOT/src/platform/mac/mem_mac.c $ROOT/src/platform/mac/video_mac.c $ROOT/src/platform/mac/video_mac_av.m $ROOT/src/phone/mac/pplat_mac.c" ;;
   arm64-v8a|armeabi-v7a) TRIPLE=$([ "$T" = arm64-v8a ] && echo aarch64-linux-android$API || echo armv7a-linux-androideabi$API)
-    BIN="$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin"; CC="$BIN/clang --target=$TRIPLE -fPIC"; CXX="$BIN/clang++ --target=$TRIPLE -fPIC"; AR="$BIN/llvm-ar"
+    BIN="$NDK/toolchains/llvm/prebuilt/$(uname -s | tr A-Z a-z)-x86_64/bin"; CC="$BIN/clang --target=$TRIPLE -fPIC"; CXX="$BIN/clang++ --target=$TRIPLE -fPIC"; AR="$BIN/llvm-ar"
     D="$B/deps"; [ -f "$D/lib/libcurl.so" ] || { echo "run tools/phone/build-deps.sh $T first"; exit 1; }
-    TFLAGS="-DSB_ANDROID=1 -I$D/include -DSB_REPO=\"android-phone\" -DSB_PKG_PREFIX=\"stremio-origin-phone-\" -DSB_PKG_SUFFIX=\"-$T.apk\""; LIBS="-L$D/lib -lSDL2 -lcurl -lGLESv2 -lEGL -llog -landroid -lz -lm -ldl -static-libstdc++"
+    TFLAGS="-DSB_ANDROID=1 -I$D/include -DSB_OWNER=\"PharmaJava\" -DSB_REPO=\"webos\" -DSB_PKG_PREFIX=\"stremio-claude-phone-\" -DSB_PKG_SUFFIX=\"-$T.apk\""; LIBS="-L$D/lib -lSDL2 -lcurl -lGLESv2 -lEGL -llog -landroid -lz -lm -ldl -static-libstdc++"
     PLATSRC="$ROOT/src/phone/android/plat_phone_android.c" ;;   # (updates: stremio-origin-phone-<x.y.z>-<abi>.apk from the stremio-origin/android-phone releases, the name tools/phone/apk.sh gives)
   *) echo "unknown target $T"; exit 1 ;;
 esac

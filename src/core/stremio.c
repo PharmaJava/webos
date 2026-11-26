@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include "core/notify.h"
 #include "core/stremio.h"
+#include "core/best.h"
 #include "core/scrobble.h"
 #include "core/traktrows.h"
 #include "core/traktwatch.h"
@@ -69,6 +70,16 @@ void sb_login(const char *email, const char *password, SbCb cb, void *ud) {
   char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
   CbBox *x = malloc(sizeof *x); x->cb = cb; x->ud = ud;
   net_post_json(STREMIO_API "/api/login", body, on_login, x); free(body);
+}
+/* (Stremio Claude) a new account: Stremio's own register call (its terms and privacy accepted on the page, nothing else), signed in when it answers */
+void sb_register(const char *email, const char *password, SbCb cb, void *ud) {
+  char now[40]; time_t t = time(NULL); struct tm tm; gmtime_r(&t, &tm); strftime(now, sizeof now, "%Y-%m-%dT%H:%M:%S.000Z", &tm);
+  cJSON *o = cJSON_CreateObject(); cJSON_AddStringToObject(o, "type", "Register"); cJSON_AddStringToObject(o, "email", email); cJSON_AddStringToObject(o, "password", password);
+  cJSON *g = cJSON_AddObjectToObject(o, "gdprConsent"); cJSON_AddBoolToObject(g, "tos", 1); cJSON_AddBoolToObject(g, "privacy", 1); cJSON_AddBoolToObject(g, "marketing", 0);
+  cJSON_AddStringToObject(g, "time", now); cJSON_AddStringToObject(g, "from", "stremio-claude");
+  char *body = cJSON_PrintUnformatted(o); cJSON_Delete(o);
+  CbBox *x = malloc(sizeof *x); x->cb = cb; x->ud = ud;
+  net_post_json(STREMIO_API "/api/register", body, on_login, x); free(body);
 }
 static void on_user(int st, const unsigned char *b, size_t n, void *ud) {
   CbBox *x = ud; cJSON *j = st == 200 ? net_json(b) : NULL; const cJSON *r = js_obj(j, "result");
@@ -1042,7 +1053,7 @@ static void streams_answer(StreamPart *p, const cJSON *arr) {
   StreamReq *r = p->req; const cJSON *s;
   StreamGroup g; copy_str(g.name, sizeof g.name, p->name); int na = arr ? cJSON_GetArraySize(arr) : 0; if (!r->ans && na > 40) na = 40; /* the best-stream pick reads all of them, as the web does: a 4K-first addon lists its 1080p files late */
   g.items = calloc(na ? na : 1, sizeof(Stream)); g.n = 0;
-  if (arr) cJSON_ArrayForEach(s, arr) { if (g.n >= na) break; if (stream_parse(&g.items[g.n], s, p->name)) g.n++; }
+  if (arr) cJSON_ArrayForEach(s, arr) { if (g.n >= na) break; if (stream_parse(&g.items[g.n], s, p->name)) { if (g.items[g.n].p2p && best_stream_seeds(&g.items[g.n]) == 0) continue; g.n++; } } /* (Stremio Claude: a torrent with no seeds never starts) */
   r->total += g.n; if (g.n) r->part(&g, p->idx, r->ud); else free(g.items);
 }
 static void stream_part_done(StreamPart *p) {

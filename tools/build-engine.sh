@@ -40,7 +40,7 @@ case "$TARGET" in
 esac
 TC="$W/tc-$TARGET"; mkdir -p "$TC"
 case "$TARGET" in android-*)   # the NDK's own toolchain: c++_static, so the library needs no libc++_shared.so
-  NDK="${NDK:-$HOME/stremiobrew-build/android/sdk/ndk/27.2.12479018}"; NBIN="$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin"
+  NDK="${NDK:-$HOME/stremiobrew-build/android/sdk/ndk/27.2.12479018}"; NBIN="$NDK/toolchains/llvm/prebuilt/$(uname -s | tr A-Z a-z)-x86_64/bin"
   printf '#!/bin/sh\nexec "%s" --target=%s "$@"\n' "$NBIN/clang++" "$TRIPLE" > "$TC/c++"; chmod 755 "$TC/c++"
   TCARGS=(-DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" -DANDROID_ABI="$ABI" -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static) ;;
 *)
