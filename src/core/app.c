@@ -688,6 +688,17 @@ static void nav_capsule_draw(int group, float open, float items_open, float nx, 
   }
 }
 
+/* (from Stremio Origin PR #125) incognito: a pill under the clock while nothing is being kept */
+static void incognito_pill_draw(void) {
+  if (!sb_incognito()) return;
+  int rtl = app_rtl(); const char *lbl = T("Incognito");
+  float tw = text_width(lbl, 21, 600, 0.2f), h = 44, w = 14 + 22 + 8 + tw + 16, y = 98;
+  float x = rtl ? 48 : SB_W - 48 - w;
+  uint32_t tint = ACC2 | 0xff000000u;
+  gfx_rrect(x, y, w, h, h / 2, RGBA(18, 16, 28, 185)); gfx_rrect(x, y, w, h, h / 2, col_alpha(tint, 0.20f)); gfx_ring(x, y, w, h, h / 2, 1.3f, col_alpha(tint, 0.55f));
+  if (rtl) { icon_draw("eyeOff", x + w - 14 - 22, y + (h - 22) / 2, 22, ACC3); text_draw(lbl, x + w - 14 - 22 - 8, y + (h - text_line_height(21)) / 2, 21, 600, WHITE_A(240), 0.2f, 0, ALIGN_RIGHT); }
+  else { icon_draw("eyeOff", x + 14, y + (h - 22) / 2, 22, ACC3); text_draw(lbl, x + 14 + 22 + 8, y + (h - text_line_height(21)) / 2, 21, 600, WHITE_A(240), 0.2f, 0, ALIGN_LEFT); }
+}
 void topnav_draw(void) {
   if (SCR == SCR_PROFILES) return;
   if (!topNav.laidOut) topnav_paint();
@@ -704,6 +715,7 @@ void topnav_draw(void) {
     nav_capsule_draw(0, open, items_open, nx, ny);
     nav_capsule_draw(1, open, items_open, nx, ny);
     update_pill_draw(app_rtl() ? SB_W - NAV_MARGIN - 76 : NAV_MARGIN, 98);
+    incognito_pill_draw();
   }
   if (lift < 0) gfx_offset_pop();
   if (rv < 1) gfx_opacity_pop();
