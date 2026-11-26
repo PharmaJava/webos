@@ -28,7 +28,7 @@ rm -f "$ROOT/tizentv/shared/res/StremioOrigin.png"; cp "$ROOT/tizentv/launcher-i
 VER=$(sed -n 's/.*package="[^"]*" version="\([0-9.]*\)".*/\1/p' "$ROOT/tizentv/tizen-manifest.xml")
 printf '%s' "$VER" > "$ROOT/tizentv/res/versao.txt"
 cp "$ROOT/tizentv/silence.wav" "$ROOT/tizentv/res/silence.wav" # (one second of silence: host D plays it shortly after the start, tizentv/hosts/HostNui.cs)
-printf '{"id":"StrOrigTV1.StremioOrigin","version":"%s"}\n' "$VER" > "$ROOT/tizentv/res/appinfo.json"   # the running version, where the app reads it (its art folder's parent): About, the log's header, the update check
+printf '{"id":"StrClaude1.StremioClaude","version":"%s"}\n' "$VER" > "$ROOT/tizentv/res/appinfo.json"   # the running version, where the app reads it (its art folder's parent): About, the log's header, the update check
 
 echo "=== [4/5] Building the .NET side: the hosts, then the picker that packs them ==="
 cd "$ROOT/tizentv"
