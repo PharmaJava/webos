@@ -4,7 +4,7 @@
 #   tools/phone/smoke.sh path/to/app.apk <name>
 set -uo pipefail
 APK="$1"; NAME="${2:-app}"; OUT="$(cd "$(dirname "$0")/../.." && pwd)/dist/smoke-$NAME"; mkdir -p "$OUT"
-PKG=app.stremioclaude.phone
+PKG="${PKG:-app.stremioclaude.phone}"
 adb wait-for-device
 adb shell 'while [ "$(getprop sys.boot_completed)" != 1 ]; do sleep 2; done'
 adb shell getprop ro.product.cpu.abilist | tee "$OUT/abis.txt"
