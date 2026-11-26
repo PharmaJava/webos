@@ -29,6 +29,7 @@
 - **Surprise me** (1.5.0): the first badge among the platforms (and on a child's Home). Pick a mood and film, series or either, and one well-rated title opens (a film already watched is passed over).
 - **Premieres** (1.5.0): on Home, films coming to streaming in your country (their digital release day) and new series, each card with its day ("Tomorrow", "In 5 days"); a notice on Home the day one comes out.
 - **For you** (1.5.0): recommendations from what each profile watched (finished counts most, then half-seen, then saved; the latest weigh more; what was watched is left out): *For you* and *Because you watched X* on Home, *Films / Series for you* in their tabs. Each profile learns on its own; a child's gets children's titles only.
+- **Over the film** (1.5.1): turning the Magic Remote's wheel brings the pointer out, with the controls; pressing the wheel clicks where it points (buttons, the time bar, Skip intro, the sources) and Back puts it away (Back again leaves the film). The sources tray stays on screen (its cards were cut on the left with many addons), an addon with no sources has no tab, and torrents that say they have no seeds are left out.
 - **Opened from FreeTV:** a title picked on [FreeTV](https://github.com/PharmaJava/FreeTV)'s home opens on its page here (`data/open.json`).
 - **Android TV / Google TV** build (under Compatibility). Updates come from this repository's releases; offered in FreeTV's store.
 
