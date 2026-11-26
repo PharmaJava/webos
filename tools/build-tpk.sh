@@ -51,8 +51,9 @@ if [ -z "$RAW_TPK" ]; then
 fi
 
 echo "=== [5/5] Signing TPK with Developer Certificate ==="
-OUT_TPK="$ROOT/dist/stremio-origin-tizen-$VER.tpk"
-node "$ORIGIN_BUILD/tizen/signer/sign.js" "$RAW_TPK" "$OUT_TPK"
+OUT_TPK="$ROOT/dist/stremio-claude-samsung-$VER.tpk"
+# (Stremio Claude) with the author's signer when there is one; else the package as Tizen.NET.Sdk signed it: Apps2Samsung signs it again for each TV anyway
+if [ -f "$ORIGIN_BUILD/tizen/signer/sign.js" ]; then node "$ORIGIN_BUILD/tizen/signer/sign.js" "$RAW_TPK" "$OUT_TPK"; else cp "$RAW_TPK" "$OUT_TPK"; fi
 
 # the library with its debug data stays out of the package: kept beside it for reading a crash, never shipped
 mkdir -p "$ROOT/dist/dbg"; cp "$ROOT/build/tizen/libstremioorigin.so" "$ROOT/dist/dbg/libstremioorigin-$VER${SB_NETLOG:+-dev}.so"

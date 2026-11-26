@@ -21,6 +21,7 @@ PMAP="-ffile-prefix-map=$HOME=/home -ffile-prefix-map=$ORIGIN_BUILD=/toolchain -
 FL="-target arm-linux-gnueabi.2.24 -mcpu=cortex_a9 -mfloat-abi=softfp -O2 -fPIC -ffunction-sections -fdata-sections -fvisibility=hidden -U__ARM_NEON -U__ARM_NEON__ $PMAP"  # (no NEON: this zig hits a backend bug on NEON code with the TV's float ABI; scalar code as the TV's own SDL)
 printf '#!/bin/sh\nexec "%s" cc %s "$@"\n' "$ZIG" "$FL" > "$W/cc"; chmod +x "$W/cc"
 printf '#!/bin/sh\nexec "%s" ar "$@"\n' "$ZIG" > "$W/ar"; chmod +x "$W/ar"
+printf '#!/bin/sh\nexec "%s" c++ %s "$@"\n' "$ZIG" "$FL" > "$W/cxx"; chmod +x "$W/cxx"   # (Stremio Claude: CMake asks for C++ too; a Linux builder may have none)
 printf '#!/bin/sh\nexec "%s" ranlib "$@"\n' "$ZIG" > "$W/ranlib"; chmod +x "$W/ranlib"
 
 echo "== zlib 1.3.1"
@@ -34,6 +35,7 @@ cat > "$W/toolchain.cmake" <<EOF
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_C_COMPILER "$W/cc")
+set(CMAKE_CXX_COMPILER "$W/cxx")
 set(CMAKE_AR "$W/ar")
 set(CMAKE_RANLIB "$W/ranlib")
 set(CMAKE_FIND_ROOT_PATH "$SDK")

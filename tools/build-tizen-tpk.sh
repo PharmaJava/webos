@@ -18,7 +18,7 @@ AR="$ZIG ar"
 PMAP="-ffile-prefix-map=$HOME=/home -ffile-prefix-map=$ORIGIN_BUILD=/toolchain -ffile-prefix-map=$(cd "$ORIGIN_BUILD" && pwd -P)=/toolchain -ffile-prefix-map=$ROOT=/src"
 OPT="-O2 -fno-strict-aliasing -ffunction-sections -fdata-sections -fPIC $PMAP"
 APPID="${APPID:-StrOrigTV1.StremioOrigin}"
-TFLAGS="${SB_NETLOG:+-DSB_TPK_NETLOG=\"$SB_NETLOG\"} -DSB_REPO=\"tizen\" -DSB_PKG_PREFIX=\"stremio-origin-tizen-\" -DSB_PKG_SUFFIX=\".tpk\" -DSB_TPK=1 -DSB_TIZEN=1 -DSTBI_NO_THREAD_LOCALS -DSTBI_NO_THREAD_LOCAL -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -I$ROOT/build/tizen/deps/include -idirafter $SDK/usr/include" # (SDL and zlib: our own builds, linked in; tools/build-tizen-deps.sh)
+TFLAGS="${SB_NETLOG:+-DSB_TPK_NETLOG=\"$SB_NETLOG\"} -DSB_OWNER=\"PharmaJava\" -DSB_REPO=\"webos\" -DSB_PKG_PREFIX=\"stremio-claude-samsung-\" -DSB_PKG_SUFFIX=\".tpk\" -DSB_TPK=1 -DSB_TIZEN=1 -DSTBI_NO_THREAD_LOCALS -DSTBI_NO_THREAD_LOCAL -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -I$ROOT/build/tizen/deps/include -idirafter $SDK/usr/include" # (SDL and zlib: our own builds, linked in; tools/build-tizen-deps.sh)
 CFLAGS="$OPT -std=c11 -DSB_APP_ID=\"$APPID\" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers $TFLAGS -I$ROOT/src -I$TP/freetype/include -I$TP/harfbuzz/src -I$TP/fribidi/lib -I$TP/config/fribidi -I$TP/cjson -I$TP/stb -I$TP/qrcodegen -I$TP/webp -I$TP/crypto -I$TP/libass -include $ROOT/src/platform/tizen/host_bridge.h"
 
 "$ROOT/tools/build-tizen-deps.sh" # SDL and zlib for the TV, built once

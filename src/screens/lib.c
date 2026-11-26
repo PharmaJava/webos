@@ -43,7 +43,7 @@ static const char *F_IC[NF] = { "lib_all", "lib_movie", "lib_series", "lib_coll"
 static const char *S_KEY[4] = { "added", "watched", "az", "year" };
 static const char *S_LB[4] = { "Recently added", "Recently watched", "A\xe2\x80\x93Z", "Newest" };
 
-typedef struct { Item it; int year, cw, done; double added, seen; float pct, left; char poster[512]; char ckey[24]; int nIn, nAll, det; } LibIt; /* ckey: a collection's card (nIn: its films in the Library; det: its own pictures and words in) */ /* poster: the address the card draws */
+typedef struct { Item it; int year, cw, done, hist; double added, seen; float pct, left; char poster[512]; char ckey[24]; int nIn, nAll, det; } LibIt; /* ckey: a collection's card (nIn: its films in the Library; det: its own pictures and words in) */ /* poster: the address the card draws */
 /* the head's words: its facts (they can come a moment later than the title, then they crossfade in place); mp and
    lftW: the meta line and the time left, measured when the facts are made */
 typedef struct { int left; float pct; char meta[200], gen[200], bits[120], lft[80], desc[1024]; int measured; float lftW; MetaParts mp; } Facts;
@@ -59,7 +59,7 @@ static struct {
   Tween gridY, fsc, osc; int fcur, fold; Timer1 ringPop, gridIn; Tween ringA;   /* the focused poster lifts (1.05), the one left settles back */
   /* the head: what is shown, what it replaces (held until the crossfade is over), and what comes next */
   Head cur, prev; Facts fprev; Timer1 headIn, factsIn; char hLogo[512];
-  char wantId[64], shownId[64]; int wantIdx, wantStage; double wantAt, logoDeadline, metaDeadline;
+  char wantId[SB_ID], shownId[SB_ID]; int wantIdx, wantStage; double wantAt, logoDeadline, metaDeadline;
   LibIt remIt; int remIdx; double remAt; /* one just taken out: it fades and shrinks where it was while the ones after move back a place */
 } L;
 
@@ -74,8 +74,12 @@ static void load(void) {
   free(L.all); L.all = NULL; L.nall = L.nreal = L.capall = 0; L.collVer = 0; cJSON *lib = store_node("lib"); if (!cJSON_IsObject(lib)) return;
   int cap = cJSON_GetArraySize(lib); if (!cap) return; L.capall = cap * 2; L.all = calloc((size_t)L.capall, sizeof *L.all); /* (room for a collection card per film at most) */
   const cJSON *x; cJSON_ArrayForEach(x, lib) {
-    if (js_bool(x, "removed", 0) || !js_str(x, "name", "")[0]) continue;
-    LibIt *o = &L.all[L.nall++]; Item *it = &o->it; const cJSON *st = js_obj(x, "state");
+    /* (Stremio Claude) a title watched without being added keeps a temporary entry (removed, temp): its progress and its watched mark.
+       It shows under In progress and Watched, never under the Library's own lists */
+    int hist = 0; if (js_bool(x, "removed", 0)) { const cJSON *hs = js_obj(x, "state");
+      if (!js_bool(x, "temp", 0) || !(js_num(hs, "timesWatched", 0) > 0 || js_num(hs, "flaggedWatched", 0) > 0 || js_num(hs, "timeOffset", 0) > 0)) continue; hist = 1; }
+    if (!js_str(x, "name", "")[0]) continue;
+    LibIt *o = &L.all[L.nall++]; Item *it = &o->it; const cJSON *st = js_obj(x, "state"); o->hist = hist;
     snprintf(it->id, sizeof it->id, "%s", js_str(x, "_id", "")); snprintf(it->type, sizeof it->type, "%s", !strcmp(js_str(x, "type", ""), "series") ? "series" : "movie");
     snprintf(it->name, sizeof it->name, "%s", js_str(x, "name", "")); snprintf(it->poster, sizeof it->poster, "%s", js_str(x, "poster", ""));
     snprintf(it->background, sizeof it->background, "%s", js_str(x, "background", "")); snprintf(it->logo, sizeof it->logo, "%s", js_str(x, "logo", ""));
@@ -95,7 +99,7 @@ static void load(void) {
 static int coll_cards(void) {
   int before = L.nall - L.nreal; L.nall = L.nreal;
   static struct { char key[24]; int n; char name[160], poster[400], bd[400], ov[600]; } LD[256]; static int nld; int asks = 0;
-  for (int j = 0; j < L.nreal; j++) { const LibIt *o = &L.all[j]; char key[24]; const char *nm; if (coll_of(o->it.type, o->it.id, key, sizeof key, &nm) != 1) continue;
+  for (int j = 0; j < L.nreal; j++) { const LibIt *o = &L.all[j]; char key[24]; if (o->hist) continue; const char *nm; if (coll_of(o->it.type, o->it.id, key, sizeof key, &nm) != 1) continue;
     int li = -1; for (int i = 0; i < nld; i++) if (!strcmp(LD[i].key, key)) { li = i; break; }
     if (li < 0) { if (nld >= 256) continue; int kn = asks < 8 ? coll_known(key) : 0; /* (eight on their way at a time: the collections' own small store never drops one; those kept on disk come at once) */
       if (kn == 0) { asks++; continue; } const Coll *d = kn > 0 ? coll_get(key) : NULL;
@@ -109,6 +113,7 @@ static int coll_cards(void) {
   return L.nall - L.nreal != before || asks;
 }
 static int pass(const LibIt *o, int f) {
+  if (o->hist) return f == 4 ? o->cw : f == 5 ? o->done : 0; /* (watched, not added: only under In progress and Watched) */
   if (o->ckey[0] || f == F_COLL) return o->ckey[0] && f == F_COLL; /* (a collection's card: under Collections only) */
   switch (f) { case 0: return 1; case 1: return !strcmp(o->it.type, "movie"); case 2: return !strcmp(o->it.type, "series");
     case 4: return o->cw; case 5: return o->done; default: return !o->done && !o->cw; } /* (3: Collections, above) */
@@ -175,7 +180,7 @@ static void on_head_meta(cJSON *m, void *ud) { (void)ud; if (!m || SCR != SCR_LI
   L.fprev = L.cur.f; L.cur.f = F; timer_start(&L.factsIn, 0.35f); }
 /* a title's details asked once: its answer is on its way (the meta call itself does not merge requests) */
 static void meta_once(const Item *it) {
-  static char asked[16][64]; static double askedAt[16]; static int an; double now = app_now();
+  static char asked[16][SB_ID]; static double askedAt[16]; static int an; double now = app_now();
   if (!strcmp(it->type, "collection") || sb_meta_cached(it->type, it->id)) return; /* (a collection: its words are its own) */
   for (int i = 0; i < 16; i++) if (!strcmp(asked[i], it->id) && now - askedAt[i] < 15) return;
   snprintf(asked[an], sizeof asked[an], "%s", it->id); askedAt[an] = now; an = (an + 1) % 16;
@@ -278,7 +283,7 @@ static void tick(float dt) {
     if (was && L.n == nw - 1) for (int i = 0; i < nw; i++) { int in = 0; for (int j = 0; j < L.n && !in; j++) in = !strcmp(at(j)->it.id, was[i].it.id); if (!in) { L.remIt = was[i]; L.remIdx = i; L.remAt = app_now(); break; } }
     free(was); if (!L.n) { L.zone = 0; L.ri = L.tab; } paint(); } /* the library changed (the card menu, a sync) */
   if (L.built && L.collVer != coll_version()) { L.collVer = coll_version(); int grew = coll_cards(); /* more known about the collections */
-    if (L.tab == F_COLL && grew) { char fid[64] = ""; const LibIt *f = at(L.idx); if (f) snprintf(fid, sizeof fid, "%s", f->it.id); int had = L.n; render(); if (had) L.gridIn.on = 0; /* (the cards there stay put: only the new one comes) */
+    if (L.tab == F_COLL && grew) { char fid[SB_ID] = ""; const LibIt *f = at(L.idx); if (f) snprintf(fid, sizeof fid, "%s", f->it.id); int had = L.n; render(); if (had) L.gridIn.on = 0; /* (the cards there stay put: only the new one comes) */
       for (int i = 0; fid[0] && i < L.n; i++) if (!strcmp(at(i)->it.id, fid)) { L.idx = i; break; } paint(); }
     else if (grew) { int c = 0; for (int j = 0; j < L.nall; j++) if (pass(&L.all[j], F_COLL)) c++; L.counts[F_COLL] = c; snprintf(L.cnt[F_COLL], sizeof L.cnt[F_COLL], "%d", c); rail_paint(0); } }
   for (int i = 0; i < NB; i++) { tween_tick(&L.bx[i], dt); tween_tick(&L.la[i], dt); tween_tick(&L.bw[i], dt); }

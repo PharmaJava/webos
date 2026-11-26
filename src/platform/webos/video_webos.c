@@ -302,7 +302,7 @@ static int ss_answer(const char *p, char *out, size_t cap) {
   char ts[64]; if (!ssreq_active(p, ts, sizeof ts)) { if (p && strstr(p, "state")) fprintf(stderr, "[video] screen saver request not about starting: %.100s\n", p); return 0; } /* (read whatever its spacing: it came pretty-printed) */
   pthread_mutex_lock(&mu); int hold = screensaverHeld(); int pl = S.playing, pz = S.pausedByUs; pthread_mutex_unlock(&mu);
   if (hold && pz && app_behind()) hold = 0; /* (#69: behind another app, its own screen saver never shows over a paused film: the TV's comes) */
-  extern volatile int saver_tv_hold; int own = 0; if (!hold && saver_tv_hold && !app_behind()) hold = own = 1; /* the app's own screen saver is on (Settings): it comes, never the TV's over it; Off: the TV's as before */
+  extern volatile int saver_tv_hold; int own = 0; if (!hold && !app_behind()) hold = own = 1; (void)saver_tv_hold; /* Stremio Claude: in front, never the TV's (the app's own, Settings, guards the screen) */ /* the app's own screen saver is on (Settings): it comes, never the TV's over it; Off: the TV's as before */
   snprintf(out, cap, "{\"clientName\":\"%s\",\"ack\":%s,\"timestamp\":%s}", SB_APP_ID, hold ? "false" : "true", ts); /* the timestamp sent back exactly as it came */
   fprintf(stderr, "[video] screen saver asked: %s\n", !hold ? "let through" : own ? "held (the app's own screen saver comes instead)" : pz ? "held (a film is paused: the app's own screen saver comes over it)" : pl ? "held (a film plays)" : "held (a film is loading, buffering or seeking)");
   return 1;
@@ -387,13 +387,13 @@ static void start_load(void) {
   pthread_mutex_lock(&planeMu); cropSX = -1; noCrop = 0; pthread_mutex_unlock(&planeMu);
   char payload[8192 + 512]; const char *win = expWin[0] ? expWin : "window_id_dummy";
   static int forceType = -1; if (forceType < 0) forceType = getenv("SB_HLS_TYPE") != NULL; /* development: the HLS name on webOS 3/4 too (an HLS film failed there at once with 601) */
-  const char *tr = (!acbOs || forceType) && hls_address(url) ? ",\"mediaTransportType\":\"HLS\"" : ""; /* webOS 5+: an HLS playlist named as one, as the TV's web engine does (left
+  const char *tr = (!acbOs || forceType) && hls_address(url) ? "\"mediaTransportType\":\"HLS\"," : ""; /* (#81: beside "option", where LG's mediaOption puts it; inside it, the TV never read it) webOS 5+: an HLS playlist named as one, as the TV's web engine does (left
      to guess, a live one buffers and never completes its load); webOS 3/4 load as before */
   char uj[8192]; size_t uo = 0; /* the address as a JSON string: a quote, backslash or control character in it (a debrid link's raw file name) made the payload invalid and the load failed */
   const char *c = url; for (; *c && uo + 7 < sizeof uj; c++) { unsigned char ch = (unsigned char)*c;
     if (ch == '"' || ch == '\\') { uj[uo++] = '\\'; uj[uo++] = (char)ch; } else if (ch < 0x20) uo += (size_t)snprintf(uj + uo, sizeof uj - uo, "\\u%04x", ch); else uj[uo++] = (char)ch; }
   uj[uo] = 0;
-  int n = snprintf(payload, sizeof payload, "{\"payload\":{\"option\":{\"useSeekableRanges\":true,\"appId\":\"%s\",\"bufferControl\":{\"userBufferCtrl\":false},\"windowId\":\"%s\"%s}},\"uri\":\"%s\",\"type\":\"media\"}", SB_APP_ID, win, tr, uj);
+  int n = snprintf(payload, sizeof payload, "{\"payload\":{%s\"option\":{\"useSeekableRanges\":true,\"appId\":\"%s\",\"bufferControl\":{\"userBufferCtrl\":false},\"windowId\":\"%s\"}},\"uri\":\"%s\",\"type\":\"media\"}", tr, SB_APP_ID, win, uj);
   if (*c || n >= (int)sizeof payload) { pthread_mutex_lock(&mu); S.st = VID_ERROR; S.error = 1; snprintf(S.err, sizeof S.err, "address too long"); pthread_mutex_unlock(&mu); return; }
   if (expWin[0]) apply_plane(); /* the exported window gets its frame and place before the load */
   if (!call("load", payload, on_load, (void *)(uintptr_t)mine)) { pthread_mutex_lock(&mu); S.st = VID_ERROR; S.error = 1; snprintf(S.err, sizeof S.err, "no media service"); pthread_mutex_unlock(&mu); }
@@ -491,9 +491,12 @@ int video_set_crop(int sx, int sy, int sw, int sh, float dx, float dy, float dw,
   if (have) apply_plane();
   return !noCrop;
 }
-void video_pump(void) {
+void video_ss_tick(void) { /* Stremio Claude: called by the app every frame */
   if (ssRefused == 1) { ssRefused = 2; char b[160]; snprintf(b, sizeof b, "{\"subscribe\":true,\"clientName\":\"%s\"}", SB_APP_ID);
     fprintf(stderr, "[video] screen saver requests through the app's luna handle: %s\n", plat_luna_subscribe_app(SS_REGISTER, b, on_screensaver_app, NULL) ? "asked" : "not possible"); }
+}
+void video_pump(void) {
+  video_ss_tick();
   int bind = 0, again = 0, died = 0; double pos = 0; int aud = 0, txt = -1, loaded = 0;
   pthread_mutex_lock(&mu);
   if (S.bindWanted & 1) bind = acb != 0; if (S.bindWanted & 2) again = 1; S.bindWanted = 0;

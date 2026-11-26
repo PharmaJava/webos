@@ -8,10 +8,14 @@
 #define CINEMETA "https://v3-cinemeta.strem.io"
 #define STREMIO_API "https://api.strem.io"
 
+/* the longest title id and video id kept (#81: an addon's 64-character event id lost its last character in 64 bytes,
+   and its streams were asked for under the cut id); a video id is the title's and ":season:episode" after it */
+#define SB_ID 128
+#define SB_VID 160
 /* a catalog entry / library card */
 typedef struct {
-  char id[64], type[16], name[256], poster[512], background[512], logo[512], description[1024], metaLine[96];
-  char videoId[80]; float progress, left; int cw;
+  char id[SB_ID], type[16], name[256], poster[512], background[512], logo[512], description[1024], metaLine[96];
+  char videoId[SB_VID]; float progress, left; int cw;
   int ep; char epName[256];      /* an episode card on a title page: its menu offers the streams */
   int newEp; double airAt;       /* Continue Watching: new episodes out since it was watched; Upcoming: when it airs */
 } Item;
@@ -19,7 +23,7 @@ typedef struct { Item *items; int n; int total; /* total: the metas in the answe
 
 /* url: the first page as asked (also the cache's name); path: the address before the extra part, extra: what the
    first page is asked with (a required property's first option, or none), skip: the catalog takes "skip" (pages) */
-typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip; } CatalogDef;
+typedef struct { char title[96], type[16], url[512], key[48], path[512], extra[200]; int skip, top10, round, wide; } CatalogDef;   /* top10 (Stremio Claude): the first ten, with their ranks */
 
 int  sb_init(void);
 /* ---- account ---- */
@@ -44,6 +48,8 @@ void sb_addon_key(const cJSON *addon, char *out, size_t cap);  /* its manifest i
 /* ---- catalogs ---- */
 int  sb_home_defs(CatalogDef *out, int max);
 int  sb_disc_defs(CatalogDef *out, int max);
+int  sb_type_defs(const char *type, CatalogDef *out, int max);   /* Stremio Claude: the Films / Series tabs, one type by category */
+int  sb_anime_defs(CatalogDef *out, int max);                    /* Stremio Claude: the Anime tab, the installed anime catalogs */
 int  sb_disc_defs_f(CatalogDef *out, int max, const char *type, const char *genre); /* Discover filtered: type "" / movie / series, genre "" for any */
 int  sb_disc_genres(char (*out)[48], int max, const char *type); /* the genres the installed catalogs of that type offer */
 /* cached copy first (cb with cached=1), then the fresh one if it differs; the list is malloc'd for the callback owner */
@@ -76,7 +82,7 @@ cJSON *lib_get(const char *id);         /* the account's item or NULL (belongs t
 int  lib_has(const char *id);           /* in the Library (not removed) */
 void lib_toggle(const Item *it);
 int  lib_cw_items(ItemList *out);       /* Continue Watching, newest first */
-typedef struct { char vid[80]; float pct, leftMin; } CwInfo;
+typedef struct { char vid[SB_VID]; float pct, leftMin; } CwInfo;
 int  lib_cw_info(const Item *it, CwInfo *out);
 float lib_trakt_resume(const char *id, const char *vid); /* Trakt's pause of that video, the newer than the library's: where (0..1), 0 none */
 int  lib_item_watched(const Item *it);  /* the badge */
@@ -98,6 +104,7 @@ cJSON *lib_new_item(const Item *it);
 void lib_save(cJSON *lit);              /* mtime, store, push */
 /* force = push to the account now (pause, close, end); otherwise at most once a minute */
 void lib_set_progress(const char *id, const Item *it, const char *vid, double timeOffsetMs, double durationMs, int force);
+void lib_reset_sync(void);
 void lib_invalidate(void);
 unsigned lib_version(void);             /* bumps on every change: boards rebuild when it moves */
 

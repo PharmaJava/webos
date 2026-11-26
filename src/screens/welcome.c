@@ -1074,7 +1074,7 @@ static int load(void) {
 /* the tour (tour 1) or the version's page, over whatever is on screen */
 static void open_guide(int tour) {
   W.n = 0; W.tour = tour;
-  if (tour) { for (int i = 0; i < NTOUR; i++) { Page *pg = &W.p[W.n++]; memset(pg, 0, sizeof *pg); snprintf(pg->title, sizeof pg->title, "%s", TOUR[i].t); snprintf(pg->lead, sizeof pg->lead, "%s", TOUR[i].l);
+  if (tour) { for (int i = 0; i < NTOUR; i++) { if (TOUR[i].pv == PV_THANKS) continue; /* Stremio Claude: no tip page */ Page *pg = &W.p[W.n++]; memset(pg, 0, sizeof *pg); snprintf(pg->title, sizeof pg->title, "%s", TOUR[i].t); snprintf(pg->lead, sizeof pg->lead, "%s", TOUR[i].l);
       for (int b = 0; b < MAXB && TOUR[i].b[b]; b++) { snprintf(pg->b[b], sizeof pg->b[b], "%s", TOUR[i].b[b]); pg->ic[b] = TOUR[i].ic[b]; pg->nb++; } pg->pv = TOUR[i].pv; pg->ctl = TOUR[i].ctl;
       if (pg->pv == PV_YOURKEYS) { int tm = !tmdb_builtin(), tk = !trakt_builtin(); ykOff = 0; /* (a key this build carries is not asked for: its step goes, and the page with both) */
         if (!tm && !tk) W.n--;
@@ -1097,18 +1097,21 @@ static int env_on(const char *k) { const char *v = getenv(k); return v && *v && 
 /* once Home is up and nothing else is open: the first start ever (the tour), or the first start of a new version */
 /* a guide or the version's page is due (the first start, or a new version): its pictures are got ready from the start */
 static int due = -1;
-static int is_due(void) { if (due < 0) { int has = load(); const char *seen = store_get("whatsNewSeen", ""); due = getenv("SB_GUIDE") || getenv("SB_WHATSNEW") || (!store_get("guideSeen", NULL) && !seen[0]) || (has && strcmp(seen, W.ver)); } return due; }
+static int is_due(void) { if (due < 0 && !getenv("SB_GUIDE") && !getenv("SB_WHATSNEW")) due = 0; /* Stremio Claude: never by itself, straight to Home */
+  if (due < 0) { int has = load(); const char *seen = store_get("whatsNewSeen", ""); due = getenv("SB_GUIDE") || getenv("SB_WHATSNEW") || (!store_get("guideSeen", NULL) && !seen[0]) || (has && strcmp(seen, W.ver)); } return due; }
 int welcome_ready(void) { return !is_due() || W.checked || preload(); }
 void welcome_tick(void) {
   if (W.open || (!W.checked && is_due())) { int r = preload(); static double since; if (!since) since = app_now(); if (!W.open && !r && app_now() - since < 4) return; } /* (kept fresh while it shows; it opens once they are in, 4 s at most) */
   if (W.checked || W.open || !app_splash_done || SCR != SCR_HOME || app_overlay || app_idle() < 1.2f) return;
   W.checked = 1; if (getenv("SB_STRESS")) return;
+  if (!env_on("SB_GUIDE") && !env_on("SB_WHATSNEW")) return; /* Stremio Claude: no tour, no news page after an update */
   int has = load(), forceG = env_on("SB_GUIDE"), forceW = env_on("SB_WHATSNEW");
   const char *seen = store_get("whatsNewSeen", ""); int first = !store_get("guideSeen", NULL) && !seen[0];
   if (forceG || (!forceW && first)) open_guide(1); else if (has && (forceW || strcmp(seen, W.ver))) open_guide(0);
 }
 void welcome_open_now(void) {
   if (W.checked || W.open || getenv("SB_STRESS")) return;
+  W.checked = 1; return; /* Stremio Claude: after signing in, Home at once (the guide stays in Settings) */
   W.checked = 1; int has = load(); const char *seen = store_get("whatsNewSeen", ""); int first = !store_get("guideSeen", NULL) && !seen[0];
   if (first) open_guide(1); else if (has && strcmp(seen, W.ver)) open_guide(0); else return;
   W.in.on = 0; W.fromSignIn = 1; /* already in: the loading fades off it, its glows carrying on */
