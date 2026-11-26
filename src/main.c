@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 #endif
   gl_config(getenv("SB_GLCFG") ? atoi(getenv("SB_GLCFG")) : 0); /* 0 RGBA8, 1 RGB8 (no alpha), 2 RGB565: which surface the compositor takes without a copy */
-  store_init(plat_data_dir()); /* before the window: the drawing size is a setting */
+  store_init(plat_data_dir()); { extern void profiles_init(void); profiles_init(); } /* before the window: the drawing size is a setting (Stremio Claude: the profiles too) */
   { extern void supportcard_start(int autoReload); supportcard_start(argc > 1 && argv[1] && strstr(argv[1], "autoReload") != NULL); } /* (a real start counted for the support card; the TV relaunching it on its own is not one) */
   int memMb = plat_mem_total_mb();
   int w, h; Uint32 flags; plat_window_size(&w, &h, &flags);
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
   app_register(SCR_LOGIN, &loginScreen); app_register(SCR_HOME, &homeScreen); app_register(SCR_DISC, &discScreen); app_register(SCR_LIB, &libScreen);
   app_register(SCR_DETAIL, &detailScreen); app_register(SCR_SIM, &simScreen); app_register(SCR_SEARCH, &searchScreen); app_register(SCR_SET, &setScreen); app_card_menu_hook = cwmenu_show;
 #endif
-  if (sb_signed_in() || getenv("SB_SKIP_LOGIN")) { app_go(SCR_HOME, NULL, 1); splash_start(1, 0); } /* SB_SKIP_LOGIN: the default rows without an account (development) */
+  if (sb_signed_in() || getenv("SB_SKIP_LOGIN")) { app_go(SCR_PROFILES, NULL, 1); splash_start(1, 0); } /* (Stremio Claude: Who's watching? — one profile goes straight to Home) */ /* SB_SKIP_LOGIN: the default rows without an account (development) */
   else { app_splash_done = 1; app_go(SCR_LOGIN, NULL, 1); }
 
   const char *shot = getenv("SB_SHOT"); int shotAt = shot ? atoi(getenv("SB_SHOT_FRAME") ? getenv("SB_SHOT_FRAME") : "40") : -1;

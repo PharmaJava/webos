@@ -20,7 +20,7 @@ for ABI in arm64-v8a armeabi-v7a; do
   echo "::endgroup::"
 done
 if [ "${ENGINE:-1}" = 1 ]; then for T in android-arm64 android-armv7; do echo "::group::torrent engine ($T)"; "$ROOT/tools/build-engine.sh" "$T"; echo "::endgroup::"; done; fi
-if [ "${DOWNLOADS:-1}" = 1 ] && command -v go >/dev/null; then for T in android-arm64 android-armv7; do echo "::group::download engine ($T)"; "$ROOT/tools/gopeed/build.sh" "$T" || echo "(downloads: not built for $T)"; echo "::endgroup::"; done; fi
+if [ "${DOWNLOADS:-1}" = 1 ] && command -v go >/dev/null; then for T in android-arm64 android-armv7; do echo "::group::download engine ($T)"; GO="$(command -v go)" "$ROOT/tools/gopeed/build.sh" "$T" || echo "(downloads: not built for $T)"; echo "::endgroup::"; done; fi
 JNI="$ROOT/android-phone/app/src/main/jniLibs"
 for ABI in arm64-v8a armeabi-v7a; do
   mkdir -p "$JNI/$ABI"; rm -f "$JNI/$ABI"/*.so; B="$ROOT/build/phone-$ABI"

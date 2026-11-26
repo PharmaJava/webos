@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "phone/phone.h"
+#include "core/profiles.h"
 #include "ui/img.h"
 #include "core/keys.h"
 #include "core/i18n.h"
@@ -289,7 +290,7 @@ static void tab_act(int i, int b) { (void)b;
   ph_sheet_close(); app_go(TABS[i], NULL, 1); }
 static void tab_set(int i, int b) { (void)b; if (i == pill_at()) return; tab_act(i, 0); }
 static int is_root(void) { return SCR == SCR_HOME || SCR == SCR_DISC || SCR == SCR_LIB; }
-static void left_act(int a, int b) { (void)a; (void)b; if (is_root()) app_go(SCR_SET, NULL, 0); else app_back(); }
+static void left_act(int a, int b) { (void)a; (void)b; if (is_root()) app_go(profiles_count() > 1 ? SCR_PROFILES : SCR_SET, NULL, 0); else app_back(); } /* (Stremio Claude: with profiles, Who's watching?) */
 static void tv_act(int a, int b) { (void)a; (void)b; cast_open(); }
 /* the row of choices above the bar: a page fills it while it draws (ctx_row_*), the bar shows it */
 typedef struct { char l[8][64]; int on[8], n; float ap[8]; /* ap: how far each chip is in (0..1: coming or going, it grows or shrinks in its place) */ HitFn act, set; int nset; Tween show; float lastPos; int seen; } CxRow;
@@ -578,7 +579,7 @@ static void phone_play(const Stream *s, const char *type, const char *id, const 
   if (tvPlay) tvPlay(s, type, id, vid, fromStart);
 }
 void phone_register(void) {
-  { extern Screen phPlatform; app_register(SCR_PLATFORM, &phPlatform); } /* (Stremio Claude: a platform's page) */
+  { extern Screen phPlatform, phProfiles; app_register(SCR_PLATFORM, &phPlatform); app_register(SCR_PROFILES, &phProfiles); } /* (Stremio Claude: a platform's page) */
   app_register(SCR_LOGIN, &phLogin); app_register(SCR_HOME, &phHome); app_register(SCR_DISC, &phDl); /* (the slot Discover had: Downloads) */ app_register(SCR_LIB, &phLib);
   app_register(SCR_DETAIL, &phDetail); { extern Screen simScreen; app_register(SCR_SIM, &simScreen); } app_register(SCR_SEARCH, &phSearch); app_register(SCR_SET, &phSet); { extern Screen phLive; app_register(SCR_LIVE, &phLive); } app_card_menu_hook = ph_menu_show;
   tvPlay = app_play_hook; app_play_hook = phone_play; cast_init(); /* (previews: the same on mobile data as on Wi-Fi; Settings says they use more data) */ { extern int prev_available(void); prev_available(); } /* (the preview library looked for at start: Settings' Previews row never comes in under a page being swiped) */

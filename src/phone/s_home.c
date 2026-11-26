@@ -212,6 +212,8 @@ static int origin(float *x, float *y) { *x = SB_W / 2; *y = SB_H / 2; return 0; 
 Screen phHome = { enter, leave, key, tick, draw, focused, NULL, NULL, origin };
 /* the TV's boards' hooks the core calls when the library changed */
 void board_invalidate(void) { B[0].lib = B[1].lib = ~0u; }
+/* (Stremio Claude) another profile: its own rows (a child's, its recommendations), made again as Home opens */
+void board_profile_changed(void) { for (int k = 0; k < 2; k++) { for (int i = 0; i < B[k].n; i++) itemlist_clear(&B[k].rows[i].list); B[k].n = 0; B[k].lib = ~0u; } F.n = 0; }
 /* the row a card is in (live TV: the channels beside the one played, for the next and the previous) */
 int board_row_items(const char *id, const Item **items) { Board *b = me(); *items = NULL;
   { const Item *bi; int n = ph_live_band(&bi); for (int i = 0; i < n; i++) if (!strcmp(bi[i].id, id)) { *items = bi; return n; } } /* a channel of the Live TV row: that row is its line-up */
