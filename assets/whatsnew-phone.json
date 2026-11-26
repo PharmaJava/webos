@@ -1,6 +1,11 @@
 {
- "version": "1.5.3",
+ "version": "1.5.4",
  "items": [
+  {
+   "icon": "wn_new",
+   "title": "Incognito mode",
+   "text": "Settings, Playback: watch without keeping your progress, Continue Watching or Trakt history."
+  },
   {
    "icon": "wn_new",
    "title": "Stremio Claude on your phone",
