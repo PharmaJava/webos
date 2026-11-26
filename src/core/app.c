@@ -489,7 +489,7 @@ static int topnav_key(int k) {
     Scr t = chipScr(i);
     if (i < NAV_DISC && SCR != t) { topnav_flush(1); topNav.idx = i; topnav_paint(); return 1; }
     topNav.idx = i; topnav_paint(); topNav.want = i; topNav.swAt = NOW + 0.15;
-  } else if (k == K_DOWN || k == K_OK) {
+  } else if (k == K_DOWN || k == K_CH_DOWN || k == K_OK) {
     topnav_flush(0); Scr tg = chipScr(topNav.idx);
     if (topNav.idx == NAV_PROFILES && k == K_OK) { open_profiles(); return 1; }
     if (topNav.idx < NAV_DISC && SCR != tg) {
@@ -497,7 +497,7 @@ static int topnav_key(int k) {
       /* Down from a corner icon: into the page you are on */
       Scr cur = (SCR == SCR_DETAIL || SCR == SCR_SIM) ? SCR_HOME : SCR; for (int j = NAV_DISC; j < NAV_COUNT; j++) if (chipScr(j) == cur) topNav.idx = j; }
     topnav_enter_content();
-  } else if (k == K_UP) topnav_nudge();
+  } else if (k == K_UP || k == K_CH_UP) topnav_nudge();
   return 1;
 }
 void topnav_tick(float dt) {
@@ -1103,11 +1103,11 @@ static void key_core(int k, int down, int repeat) {
      picked up): not input that stops the background trailer */
   if (k != K_CURSOR_SHOW && k != K_CURSOR_HIDE) { char why[32]; snprintf(why, sizeof why, "key %d", k); curKey = k; idle_touch_by(why); }
   k = app_mirror_key(k); /* mirrored layout: Left moves forward (every screen sees the logical direction) */
-  if (k >= K_LEFT && k <= K_DOWN) { /* an arrow: a tap when the focus moved (a screen's own sound, e.g. a filter, wins) */
+  if ((k >= K_LEFT && k <= K_DOWN) || k == K_CH_UP || k == K_CH_DOWN) { /* an arrow or channel page: a tap when the focus moved */
     FocusSig f0, f1; focus_sig(&f0); double t0 = NOW; key_dispatch(k, repeat); focus_sig(&f1);
     /* the glows lean the way it went: a tab sweeps them across, a step only leans them (held keys, less) */
     if (f1.nav && f1.navIdx != f0.navIdx) orbs_pulse(f1.navIdx > f0.navIdx ? ORB_TAB_R : ORB_TAB_L, 0.8f);
-    else orbs_pulse(k == K_LEFT ? ORB_LEFT : k == K_RIGHT ? ORB_RIGHT : k == K_UP ? ORB_UP : ORB_DOWN, repeat ? 0.15f : memcmp(&f0, &f1, sizeof f0) ? 0.35f : 0.2f);
+    else orbs_pulse(k == K_LEFT ? ORB_LEFT : k == K_RIGHT ? ORB_RIGHT : (k == K_UP || k == K_CH_UP) ? ORB_UP : ORB_DOWN, repeat ? 0.15f : memcmp(&f0, &f1, sizeof f0) ? 0.35f : 0.2f);
     if (sound_last() < t0 - 1e-6 && memcmp(&f0, &f1, sizeof f0)) sound_play(f1.nav && f1.navIdx != f0.navIdx ? SND_TAB : SND_FOCUS);
     else if (sound_last() < t0 - 1e-6 && !f1.known) sound_play(SND_FOCUS); /* a sheet that cannot say where its focus is: every move */
     return; }
