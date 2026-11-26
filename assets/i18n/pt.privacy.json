@@ -1,0 +1,15 @@
+{
+"Speed test": "Teste de velocidade",
+"Set for {n} Mbps · Updated automatically on launch": "Ajustado para {n} Mbps · Atualiza sozinho ao abrir",
+"Testing your connection. Stay here a few seconds": "Testando sua conexão. Fique aqui alguns segundos",
+"Measuring connection in the background…": "Medindo a conexão em segundo plano…",
+"Last measured: {n} Mbps · Runs automatically on launch · OK to test now": "Última medição: {n} Mbps · Roda sozinho ao abrir · OK para testar agora",
+"Runs automatically in the background on launch · OK to test now": "Roda sozinho em segundo plano ao abrir · OK para testar agora",
+"Connection speed: {n} Mbps": "Velocidade da conexão: {n} Mbps",
+"Incognito": "Anônimo",
+"Incognito mode": "Modo anônimo",
+"Watch without saving progress, Continue Watching, or Trakt history": "Assistir sem salvar o progresso, Continuar assistindo nem o histórico do Trakt",
+"Incognito mode on — watch history paused": "Modo anônimo ligado: histórico pausado",
+"Incognito mode off": "Modo anônimo desligado",
+"Settings, Playback: watch without keeping your progress, Continue Watching or Trakt history.": "Ajustes, Reprodução: assista sem salvar o progresso, Continuar assistindo nem o histórico do Trakt."
+}
