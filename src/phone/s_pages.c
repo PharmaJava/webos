@@ -26,7 +26,7 @@ static void lib_filter(int a, int b);
 static void lib_pick(int pos, int b) { lib_filter(LF_ORD[pos], b); }
 static const char *LS_KEY[4] = { "added", "watched", "az", "year" };
 static const char *LS_LB[4] = { "Recently added", "Recently watched", "A\xe2\x80\x93Z", "Newest" };
-typedef struct { Item it; double added, seen; int year, cw, done; } LibIt;
+typedef struct { Item it; double added, seen; int year, cw, done, hist; } LibIt; /* hist: (Stremio Claude) watched without being added */
 static struct { LibIt *all; int nall; ItemList shown; unsigned lib; int filter, fi, counts[LNF]; Scroll v; Timer1 sw; int swDir; char lbl[LNF][64]; } L;
 static double iso_ms(const cJSON *v) {
   if (cJSON_IsNumber(v)) return v->valuedouble;
@@ -35,13 +35,13 @@ static double iso_ms(const cJSON *v) {
   return 0;
 }
 static int lib_sort_key(void) { const char *k = store_get("libSort", "added"); for (int i = 0; i < 4; i++) if (!strcmp(k, LS_KEY[i])) return i; return 0; }
-static int lpass(const LibIt *o, int f) { switch (f) { case 0: return 1; case 1: return !strcmp(o->it.type, "movie"); case 2: return !strcmp(o->it.type, "series"); case 3: return o->cw; case 4: return o->done; case 5: return !o->done && !o->cw; default: return 0; } } /* (Downloads: none kept yet) */
+static int lpass(const LibIt *o, int f) { if (o->hist) return f == 3 ? o->cw : f == 4 ? o->done : 0; switch (f) { case 0: return 1; case 1: return !strcmp(o->it.type, "movie"); case 2: return !strcmp(o->it.type, "series"); case 3: return o->cw; case 4: return o->done; case 5: return !o->done && !o->cw; default: return 0; } } /* (Downloads: none kept yet) */
 /* the collections the Library's titles are in: one card each (its poster, its name), once its details are in and it
    has two titles or more; made again whenever more is known (as the TV's) */
 static ItemList LC; static unsigned lcVer = ~0u, lcLib = ~0u;
 static void lib_colls(void) {
   if (lcVer == coll_version() && lcLib == L.lib) return; lcVer = coll_version(); lcLib = L.lib; itemlist_clear(&LC); LC.items = calloc(64, sizeof(Item)); int asks = 0;
-  for (int j = 0; j < L.nall && LC.n < 64; j++) { const Item *o = &L.all[j].it; char key[24]; const char *nm; if (coll_of(o->type, o->id, key, sizeof key, &nm) != 1) continue;
+  for (int j = 0; j < L.nall && LC.n < 64; j++) { if (L.all[j].hist) continue; const Item *o = &L.all[j].it; char key[24]; const char *nm; if (coll_of(o->type, o->id, key, sizeof key, &nm) != 1) continue;
     int dup = 0; char cid[64]; snprintf(cid, sizeof cid, "coll:%s", key); for (int k = 0; k < LC.n && !dup; k++) dup = !strcmp(LC.items[k].id, cid); if (dup) continue;
     int kn = asks < 8 ? coll_known(key) : 0; if (kn == 0) { asks++; continue; } if (kn < 0) continue; const Coll *c = coll_get(key); if (!c || c->n < 2) continue;
     Item *it = &LC.items[LC.n++]; memset(it, 0, sizeof *it); snprintf(it->type, sizeof it->type, "collection"); snprintf(it->id, sizeof it->id, "%s", cid); snprintf(it->name, sizeof it->name, "%s", c->name[0] ? c->name : nm);
@@ -57,8 +57,11 @@ static void lib_build(void) {
   free(L.all); L.all = NULL; L.nall = 0; L.lib = lib_version(); cJSON *lib = store_node("lib");
   int cap = cJSON_IsObject(lib) ? cJSON_GetArraySize(lib) : 0; L.all = calloc(cap ? cap : 1, sizeof *L.all); const cJSON *x;
   if (cap) cJSON_ArrayForEach(x, lib) {
-    if (js_bool(x, "removed", 0) || !js_str(x, "name", "")[0]) continue;
-    LibIt *o = &L.all[L.nall++]; Item *it = &o->it; const cJSON *st = js_obj(x, "state");
+    /* (Stremio Claude) a title watched without being added keeps a temporary entry: shown under In progress and Watched */
+    int hist = 0; if (js_bool(x, "removed", 0)) { const cJSON *hs = js_obj(x, "state");
+      if (!js_bool(x, "temp", 0) || !(js_num(hs, "timesWatched", 0) > 0 || js_num(hs, "flaggedWatched", 0) > 0 || js_num(hs, "timeOffset", 0) > 0)) continue; hist = 1; }
+    if (!js_str(x, "name", "")[0]) continue;
+    LibIt *o = &L.all[L.nall++]; memset(o, 0, sizeof *o); Item *it = &o->it; const cJSON *st = js_obj(x, "state"); o->hist = hist;
     snprintf(it->id, sizeof it->id, "%s", js_str(x, "_id", "")); snprintf(it->type, sizeof it->type, "%s", !strcmp(js_str(x, "type", ""), "series") ? "series" : "movie");
     snprintf(it->name, sizeof it->name, "%s", js_str(x, "name", "")); snprintf(it->poster, sizeof it->poster, "%s", js_str(x, "poster", ""));
     snprintf(it->background, sizeof it->background, "%s", js_str(x, "background", "")); snprintf(it->logo, sizeof it->logo, "%s", js_str(x, "logo", ""));
