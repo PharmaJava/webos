@@ -97,7 +97,7 @@ static void nav_row(float y, const char *icon, uint32_t tint, const char *label,
 static const char *swKeys[16]; static int nsw;
 static void sw_act(int i, int b) { (void)b; const char *k = swKeys[i]; int def = strcmp(k, "nerdStats") != 0 && strcmp(k, "dlWifi") != 0 && strcmp(k, "seekPreviewsTorrent") != 0 && strcmp(k, "incognito") != 0; /* (the ones off unless switched on) */ store_set(k, store_bool(k, def) ? "false" : "true"); if (!strcmp(k, "accent")) accent_apply(); if (!strcmp(k, "dlHdr")) store_set("dlQuality", "custom");
   if (!strcmp(k, "traktRows") || !strcmp(k, "traktMarks") || !strcmp(k, "traktCw")) board_invalidate();
-  if (!strcmp(k, "incognito")) toast(sb_incognito() ? T("Incognito mode on â watch history paused") : T("Incognito mode off"), 2400, NULL); } /* (Stremio Claude, from Stremio Origin #125) */ /* (Trakt's rows, marks and pauses come and go on Home) */
+  if (!strcmp(k, "incognito")) toast(sb_incognito() ? T("Incognito mode on \xe2\x80\x94 watch history paused") : T("Incognito mode off"), 2400, NULL); } /* (Stremio Claude, from Stremio Origin #125) */ /* (Trakt's rows, marks and pauses come and go on Home) */
 static void sw_row(float y, const char *label, const char *sub, const char *key, int def) { rres = 124; row_base(y, NULL, 0, label, sub, RH); switch_draw(gx + gw - 26 - 82, y + RH / 2 - 23, store_bool(key, def)); if (nsw < 16) { swKeys[nsw] = key; hit_act(gx, y, gw, RH, sw_act, nsw, 0); nsw++; } }
 /* a choice among options: a sheet */
 static const char *chKeys[16]; static const Opt *chOpts[16]; static int chN[16], nch;
@@ -379,9 +379,25 @@ static float look_preview(float y) {
     text_draw(lb, chx + 44, chy + chh / 2 - text_line_height(F_TINY) / 2.0f, F_TINY, 700, WHITE_A(235), 0, 0, ALIGN_START);
     for (int k = 0; k < 3; k++) { float dx = chx + 44 + tw + 18 + k * 22; gfx_circle(dx, chy + chh / 2, 8, ac[k]); gfx_ring(dx - 8, chy + chh / 2 - 8, 16, 16, 8, 1, WHITE_A(80)); } gfx_scale_pop(); }
   return y + h + 34; }
+/* (Stremio Claude) the TMDB key, pasted here: the platforms (Netflix, Prime Video...), For you, premieres and titles in your language */
+static void key_get(int a, int b) { (void)a; (void)b; if (!pplat_open_url("https://www.themoviedb.org/settings/api")) toast("themoviedb.org/settings/api", 3000, NULL); }
+static void key_paste(int a, int b) { (void)a; (void)b; char *c = SDL_GetClipboardText();
+  if (!c || !*c) { toast(T("Copy your TMDB key first"), 2200, NULL); SDL_free(c); return; }
+  if (tmdb_key_try(c)) toast(T("Checking\xe2\x80\xa6"), 1500, NULL); SDL_free(c); ph_sheet_close(); }
+static void key_draw(float a) { float h = 640 + INS_B, y = sheet_panel(h, a);
+  text_draw(T("Recommendations and more"), PAD, y + 46, F_H2, 800, TXT, -0.2f, SB_W - 2 * PAD, ALIGN_START);
+  text_draw_wrapped(T("With a TMDB key: For you, premieres, each platform\xe2\x80\x99s Top 10, news and genres, and titles in your language. Make a free key at themoviedb.org (Settings, API), copy the API key and paste it here. It stays on this phone."), PAD, y + 104, SB_W - 2 * PAD, 6, F_SMALL + 1, 500, TXT2, 0, ALIGN_START, 31);
+  button(PAD, y + 330, SB_W - 2 * PAD, 84, "ph_ext", T("Get a free key"), 0, key_get, 0, 0);
+  button(PAD, y + 430, SB_W - 2 * PAD, 84, "ph_plus", T("Paste the key"), 1, key_paste, 0, 0); }
+static const PhSheet keySheet = { key_draw, NULL, NULL };
+static void key_act(int a, int b) { (void)a; (void)b; ph_sheet_open(&keySheet); }
+static void key_poll(void) { int r = tmdb_key_result(); if (r < 0) return;
+  if (r == 1) { extern void board_profile_changed(void); board_profile_changed(); toast(T("Key saved: For you and premieres are on Home"), 3200, NULL); }
+  else toast(T("TMDB didn\xe2\x80\x99t accept this key."), 2800, NULL); }
 /* the first page: the account, then the groups */
 static float main_list(float y) {
       const cJSON *u = store_node("user"); int in = sb_signed_in(); (void)u;
+      if (!tmdb_has_key() && !tmdb_builtin()) { grp(y, 1); act_row(y, "st_link", TINT_GREEN, T("Add your TMDB key"), T("For you, premieres and more on each platform. Free"), key_act, 0); y = grp_end(); } /* (Stremio Claude) */
       y += head(y, T("Watch")); grp(y, 2);
       nav_row(y, "st_play", TINT_GREEN, T("Playback"), T("Best stream, next episode, seek step"), P_PLAY); y += RH;
       nav_row(y, "ph_down", TINT_BLUE, T("Downloads"), NULL, P_DL); y = grp_end();
@@ -528,7 +544,7 @@ static float page_body(int pg, float y, const char **titleOut) { const char *tit
         grp(y, n + 1); for (int i = 0; i <= n; i++) { const char *code = i ? i18n_lang_code(i - 1) : "auto"; int on = !strcmp(cur, code); rres = 90; row_base(y, NULL, 0, i ? i18n_lang_name(code) : T("Auto"), NULL, RH);
           if (on) icon_draw("ph_check", gx + gw - 26 - 40, y + RH / 2 - 20, 40, ACC2); hit_act(gx, y, gw, RH, lang_row, i, 0); y += RH; } y = grp_end(); }
       if (keyRow) { grp(y, 1 + (tmdb_has_key() ? 1 : 0)); }
-      if (keyRow) { int on = tmdb_has_key(); act_row(y, NULL, 0, T("Titles and descriptions"), on ? T("In the app\xe2\x80\x99s language, from TMDB") : T("Only in English. Add a free TMDB key in Settings on the TV"), NULL, 0); y += RH;
+      if (keyRow) { int on = tmdb_has_key(); act_row(y, NULL, 0, T("Titles and descriptions"), on ? T("In the app\xe2\x80\x99s language, from TMDB") : T("Only in English. Tap to add a free TMDB key"), on ? NULL : key_act, 0); y += RH;
         if (on) { act_row(y, NULL, 0, T("Remove the TMDB key"), T("Titles and descriptions go back to English"), tmdb_act, 0); y += RH; } }
       if (keyRow) y = gTop + gH + 30; break; }
     case P_ADDONS: { title = T("Addons"); cJSON *list = sb_addons(); int n = cJSON_GetArraySize(list), i = 0; const cJSON *ad;
@@ -558,6 +574,7 @@ static float page_body(int pg, float y, const char **titleOut) { const char *tit
   }  *titleOut = title; return y; }
 static Scroll sb; static int sbWas, sbGo, sbLanded; static float sbX; /* sb: a swipe back on a sub-page (its pos goes negative as the finger moves right); Back runs the same slide */
 static void s_draw(void) {
+  key_poll();
   nsw = nch = 0; Scroll *v = &S.v[S.page]; ph_drag(0, 0, SB_W, SB_H - INS_B - BAR_H, v, 1); scroll_tick(v);
   /* a sub-page comes in from the right, the list goes back to the left */
   if (S.page != P_MAIN && !sbGo) { ph_drag(0, INS_T, SB_W, SB_H - INS_T - INS_B - BAR_H, &sb, 0); sb.free = 1; sb.max = 0; } /* (opened from elsewhere: the same slide, that page under it) */
