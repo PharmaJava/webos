@@ -179,7 +179,7 @@ void sb_addon_move(int i, int to, void (*cb)(int ok, void *ud), void *ud) {
   cJSON *cur = sb_addons(); int n = cur ? cJSON_GetArraySize(cur) : 0; if (i < 0 || i >= n || to < 0 || to >= n || i == to) { if (cb) cb(0, ud); return; }
   cJSON *list = cJSON_Duplicate(cur, 1); cJSON *it = cJSON_DetachItemFromArray(list, i); cJSON_InsertItemInArray(list, to, it); addons_send(list, cb, ud); }
 /* an addon added by its link (".../manifest.json", or "stremio://..."): its manifest fetched, the addon put last */
-typedef struct { void (*cb)(int, void *); void *ud; char url[1024]; } AddBox;
+typedef struct { void (*cb)(int, void *); void *ud; char url[SB_URL_MAX]; } AddBox; /* (Stremio Claude: debrid links with their settings run past 1 KB) */
 static void on_manifest(int st, const unsigned char *b, size_t n, void *ud) { (void)n; AddBox *x = ud; cJSON *m = st == 200 ? net_json(b) : NULL;
   if (!m || !js_str(m, "id", NULL)) { net_json_free(m); if (x->cb) x->cb(0, x->ud); free(x); return; }
   cJSON *list = sb_addons() ? cJSON_Duplicate(sb_addons(), 1) : cJSON_CreateArray(); const cJSON *ad; int at = 0, dup = -1;
