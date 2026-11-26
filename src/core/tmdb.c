@@ -99,14 +99,6 @@ static int key_from_phone(const char *raw) {
   return 1;
 }
 
-/* (Stremio Claude) the phone app: a key pasted in the app itself, checked against TMDB on a thread of its own */
-static volatile int tryRes = -2; /* -2 nothing asked, -1 checking, 0 refused, 1 kept */
-static void *try_main(void *arg) { char *k = arg; int ok = key_from_phone(k); free(k); tryRes = ok; return NULL; }
-int tmdb_key_try(const char *raw) {
-  if (tryRes == -1 || !raw) return 0; if (!inited) tmdb_init();
-  char *k = strdup(raw); if (!k) return 0; tryRes = -1; pthread_t t;
-  if (pthread_create(&t, NULL, try_main, k)) { free(k); tryRes = 0; return 0; } pthread_detach(t); return 1; }
-int tmdb_key_result(void) { int r = tryRes; if (r >= 0) { tryRes = -2; drain(); } return r; }
 
 /* ---- the work queue ------------------------------------------------------------------------------ */
 enum { E_OK = 0, E_BADKEY, E_NET };
@@ -292,6 +284,14 @@ void tmdb_init(void) {
   snprintf(tabLang, sizeof tabLang, "%s", i18n_lang());
   httpd_set_key_handler(key_from_phone);
 }
+/* (Stremio Claude) the phone app: a key pasted in the app itself, checked against TMDB on a thread of its own */
+static volatile int tryRes = -2; /* -2 nothing asked, -1 checking, 0 refused, 1 kept */
+static void *try_main(void *arg) { char *k = arg; int ok = key_from_phone(k); free(k); tryRes = ok; return NULL; }
+int tmdb_key_try(const char *raw) {
+  if (tryRes == -1 || !raw) return 0; if (!inited) tmdb_init();
+  char *k = strdup(raw); if (!k) return 0; tryRes = -1; pthread_t t;
+  if (pthread_create(&t, NULL, try_main, k)) { free(k); tryRes = 0; return 0; } pthread_detach(t); return 1; }
+int tmdb_key_result(void) { int r = tryRes; if (r >= 0) { tryRes = -2; drain(); } return r; }
 int tmdb_has_key(void) { drain(); return key[0] != 0; }
 /* a call for another part of the app (collections): its URL and header with the key in use; 0 when there is none */
 /* the same from any thread (the pictures' workers): the key as it stands, nothing else touched */
